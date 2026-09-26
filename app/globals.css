@@ -1,26 +1,386 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* filing-room illustration palette */
+  --wall-blue: #b7c7e6;
+  --wall-blue-soft: #cdd9ef;
+  --cabinet-blue: #7e97be;
+  --cabinet-blue-dark: #61789f;
+  --cabinet-blue-deep: #46587a;
+  --paper: #f7f0dd;
+  --paper-soft: #efe4c8;
+  --paper-card: #fbf6e8;
+  --ink: #223047;
+  --ink-soft: #46567a;
+  --ink-mute: #77839f;
+  --lamp-green: #3f6b4f;
+  --lamp-green-bright: #4f8f63;
+  --tag-red: #b8433a;
+  --brass: #b9924f;
+  --brass-bright: #cca964;
+  --hairline: rgba(34, 48, 71, 0.16);
+  --hairline-strong: rgba(34, 48, 71, 0.32);
+  --shadow-file: 0 1px 0 rgba(34, 48, 71, 0.05), 0 14px 28px -16px rgba(34, 48, 71, 0.45);
+
+  --background: var(--wall-blue-soft);
+  --foreground: var(--ink);
+  --card: var(--paper-card);
+  --border: var(--hairline);
+  --primary: var(--lamp-green);
+  --accent: var(--brass);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(
+      ellipse at 15% 0%,
+      color-mix(in srgb, var(--wall-blue) 55%, white) 0%,
+      transparent 60%
+    ),
+    linear-gradient(var(--hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
+  background-size:
+    auto,
+    100% 36px,
+    36px 100%;
+  background-attachment: fixed, fixed, fixed;
+}
+
+/* procedural colored-pencil grain, drawn once and reused everywhere */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.track-wide {
+  letter-spacing: 0.14em;
+}
+
+/* -- surfaces -- */
+
+.panel {
+  background: var(--card);
+  border: 1.5px solid var(--hairline-strong);
+  border-radius: 18px 20px 19px 17px;
+  box-shadow: var(--shadow-file);
+}
+
+.hairline {
+  border-color: var(--border);
+}
+
+.folder-tab {
+  position: relative;
+}
+
+.folder-tab::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 22px;
+  width: 68px;
+  height: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--hairline-strong);
+  border-bottom: none;
+  border-radius: 7px 9px 0 0;
+}
+
+/* -- stamp badges -- */
+
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.3em 0.65em;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+}
+
+.stamp-live {
+  color: var(--lamp-green);
+}
+
+.stamp-demo {
+  color: var(--brass);
+}
+
+.stamp-filed {
+  color: var(--tag-red);
+  transform: rotate(-2deg);
+}
+
+/* -- buttons -- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 0.75em 1.4em;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--lamp-green);
+  color: var(--paper-card);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 8px 18px -6px var(--lamp-green);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--hairline-strong);
+  color: var(--foreground);
+}
+
+.btn-ghost:hover {
+  border-color: var(--foreground);
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ledger-row + .ledger-row {
+  border-top: 1px solid var(--border);
+}
+
+/* -- wallet-adapter modal, restyled to match -- */
+
+.wallet-adapter-button {
+  background: var(--lamp-green) !important;
+  color: var(--paper-card) !important;
+  border-radius: 999px !important;
+  font-family: var(--font-body), sans-serif !important;
+  font-weight: 700 !important;
+  height: auto !important;
+  padding: 0.75em 1.4em !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: var(--paper-card) !important;
+  color: var(--foreground) !important;
+  border-radius: 20px !important;
+  border: 1.5px solid var(--hairline-strong);
+}
+
+.wallet-adapter-modal-title {
+  color: var(--foreground) !important;
+  font-family: var(--font-display), serif !important;
+}
+
+.wallet-adapter-modal-list li .wallet-adapter-button {
+  background: transparent !important;
+  color: var(--foreground) !important;
+  border: 1.5px solid var(--hairline) !important;
+}
+
+.wallet-adapter-modal-overlay {
+  background: rgba(34, 48, 71, 0.5) !important;
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.4) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-2deg);
+  }
+}
+
+.stamp-in {
+  animation: stamp-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* -- mascot -- */
+
+.folio-cat-tail {
+  transform-origin: 148px 168px;
+  animation: cat-tail 4.5s ease-in-out infinite;
+}
+
+@keyframes cat-tail {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+.folio-cat-blink {
+  animation: cat-blink 5.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes cat-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.folio-cat-idle .folio-cat-head {
+  animation: cat-idle-sway 6s ease-in-out infinite;
+}
+
+@keyframes cat-idle-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-2deg);
+  }
+}
+
+.folio-cat-thinking .folio-cat-head {
+  animation: cat-think-tilt 2.4s ease-in-out infinite;
+}
+
+@keyframes cat-think-tilt {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+.folio-cat-thought circle {
+  animation: cat-thought-fade 1.8s ease-in-out infinite;
+}
+
+.folio-cat-thought circle:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.folio-cat-thought circle:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes cat-thought-fade {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.folio-cat-answering {
+  animation: cat-bounce 0.9s ease-in-out infinite;
+}
+
+@keyframes cat-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.folio-cat-refusing {
+  animation: cat-shake 0.5s ease-in-out 2;
+}
+
+@keyframes cat-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+.folio-cat-error .folio-cat-head {
+  animation: cat-wobble 0.6s ease-in-out 2;
+}
+
+@keyframes cat-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in,
+  .folio-cat-tail,
+  .folio-cat-blink,
+  .folio-cat-idle .folio-cat-head,
+  .folio-cat-thinking .folio-cat-head,
+  .folio-cat-thought circle,
+  .folio-cat-answering,
+  .folio-cat-refusing,
+  .folio-cat-error .folio-cat-head {
+    animation: none !important;
+  }
 }
