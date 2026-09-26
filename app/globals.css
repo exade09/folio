@@ -243,144 +243,97 @@ body {
   animation: stamp-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* -- mascot -- */
+/* -- mascot: generic container-level animations, mood-image agnostic -- */
 
-.folio-cat-tail {
-  transform-origin: 148px 168px;
-  animation: cat-tail 4.5s ease-in-out infinite;
+.mascot-frame {
+  transition: transform 0.25s ease;
 }
 
-@keyframes cat-tail {
+.mascot-anim-idle {
+  animation: mascot-idle-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes mascot-idle-breathe {
   0%,
   100% {
-    transform: rotate(0deg);
+    transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: rotate(6deg);
+    transform: translateY(-3px) rotate(-1deg);
   }
 }
 
-.folio-cat-blink {
-  animation: cat-blink 5.5s ease-in-out infinite;
-  transform-origin: center;
+.mascot-anim-thinking {
+  animation: mascot-think-tilt 2.2s ease-in-out infinite;
 }
 
-@keyframes cat-blink {
-  0%,
-  92%,
-  100% {
-    transform: scaleY(1);
-  }
-  95% {
-    transform: scaleY(0.1);
-  }
-}
-
-.folio-cat-idle .folio-cat-head {
-  animation: cat-idle-sway 6s ease-in-out infinite;
-}
-
-@keyframes cat-idle-sway {
+@keyframes mascot-think-tilt {
   0%,
   100% {
-    transform: rotate(0deg);
+    transform: rotate(-4deg);
   }
   50% {
-    transform: rotate(-2deg);
+    transform: rotate(4deg);
   }
 }
 
-.folio-cat-thinking .folio-cat-head {
-  animation: cat-think-tilt 2.4s ease-in-out infinite;
+.mascot-anim-answering {
+  animation: mascot-bounce 0.9s ease-in-out infinite;
 }
 
-@keyframes cat-think-tilt {
-  0%,
-  100% {
-    transform: rotate(-5deg);
-  }
-  50% {
-    transform: rotate(3deg);
-  }
-}
-
-.folio-cat-thought circle {
-  animation: cat-thought-fade 1.8s ease-in-out infinite;
-}
-
-.folio-cat-thought circle:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.folio-cat-thought circle:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes cat-thought-fade {
-  0%,
-  100% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.folio-cat-answering {
-  animation: cat-bounce 0.9s ease-in-out infinite;
-}
-
-@keyframes cat-bounce {
+@keyframes mascot-bounce {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-5px);
+    transform: translateY(-6px);
   }
 }
 
-.folio-cat-refusing {
-  animation: cat-shake 0.5s ease-in-out 2;
+.mascot-anim-refusing {
+  animation: mascot-shake 0.5s ease-in-out 2;
 }
 
-@keyframes cat-shake {
+@keyframes mascot-shake {
   0%,
   100% {
     transform: rotate(0deg);
   }
   25% {
-    transform: rotate(-3deg);
+    transform: rotate(-4deg);
   }
   75% {
-    transform: rotate(3deg);
+    transform: rotate(4deg);
   }
 }
 
-.folio-cat-error .folio-cat-head {
-  animation: cat-wobble 0.6s ease-in-out 2;
+.mascot-anim-error {
+  animation: mascot-wobble 0.6s ease-in-out 2;
 }
 
-@keyframes cat-wobble {
+@keyframes mascot-wobble {
   0%,
   100% {
     transform: rotate(0deg);
   }
   50% {
-    transform: rotate(-8deg);
+    transform: rotate(-7deg);
   }
+}
+
+.mascot-anim-filed {
+  animation: stamp-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stamp-in,
-  .folio-cat-tail,
-  .folio-cat-blink,
-  .folio-cat-idle .folio-cat-head,
-  .folio-cat-thinking .folio-cat-head,
-  .folio-cat-thought circle,
-  .folio-cat-answering,
-  .folio-cat-refusing,
-  .folio-cat-error .folio-cat-head {
+  .mascot-anim-idle,
+  .mascot-anim-thinking,
+  .mascot-anim-answering,
+  .mascot-anim-refusing,
+  .mascot-anim-error,
+  .mascot-anim-filed {
     animation: none !important;
   }
 }

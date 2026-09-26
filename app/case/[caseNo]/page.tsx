@@ -5,7 +5,7 @@ import { factLines } from "@/lib/format";
 import { StampBadge } from "@/components/StampBadge";
 import { AskBox } from "@/components/AskBox";
 import { TokenAvatar } from "@/components/TokenAvatar";
-import { FolioCat } from "@/components/FolioCat";
+import { MascotImage } from "@/components/MascotImage";
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
@@ -36,7 +36,9 @@ export default async function CasePage({
 
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <FolioCat mood="idle" size={64} />
+          <div className="rounded-2xl overflow-hidden shrink-0">
+            <MascotImage mood="idle" size={64} />
+          </div>
           <TokenAvatar symbol={caseFile.symbol} logoUri={caseFile.logoUri} size={48} />
           <div>
             <div className="flex items-center gap-3 flex-wrap">

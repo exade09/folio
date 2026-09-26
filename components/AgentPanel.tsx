@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import type { CaseFile } from "@/lib/types";
-import { FolioCat, type MascotMood, moodLabel } from "./FolioCat";
+import { MascotImage, moodLabel, type MascotMood } from "./MascotImage";
 
 interface Exchange {
   question: string;
@@ -10,9 +11,13 @@ interface Exchange {
   refused: boolean;
 }
 
+const NO_WALLET_LINE = "Connect a wallet on the left to begin.";
+const NO_CASE_LINE = "Pick a filed position on the left, then ask him about it.";
+
 export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) {
+  const { publicKey } = useWallet();
   const [mood, setMood] = useState<MascotMood>("idle");
-  const [statusLine, setStatusLine] = useState("Pick a file on the left, then ask him about it.");
+  const [statusLine, setStatusLine] = useState(NO_WALLET_LINE);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,17 +26,16 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
 
   const caseNo = selectedCase?.caseNo ?? null;
   const symbol = selectedCase?.symbol ?? null;
+  const connected = Boolean(publicKey);
   const exchanges = useMemo(() => (caseNo ? exchangesByCase[caseNo] || [] : []), [caseNo, exchangesByCase]);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
-      setStatusLine(
-        symbol && caseNo ? `Ready on ${symbol} · ${caseNo}` : "Pick a file on the left, then ask him about it."
-      );
+      setStatusLine(symbol && caseNo ? `Ready on ${symbol} · ${caseNo}` : connected ? NO_CASE_LINE : NO_WALLET_LINE);
       setMood("idle");
       setError(null);
     });
-  }, [caseNo, symbol]);
+  }, [caseNo, symbol, connected]);
 
   useEffect(() => {
     return () => {
@@ -94,10 +98,10 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
   }
 
   return (
-    <div className="panel folder-tab overflow-hidden flex flex-col h-full">
-      <div className="px-6 pt-7 pb-5 flex flex-col items-center text-center border-b hairline bg-[var(--wall-blue-soft)]">
-        <FolioCat mood={mood} size={168} />
-        <div className="mt-2 text-[11px] font-mono uppercase tracking-wide text-[var(--ink-mute)]">
+    <div className="flex flex-col h-full">
+      <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center border-b hairline bg-[var(--wall-blue-soft)] shrink-0">
+        <MascotImage mood={mood} size={172} />
+        <div className="mt-3 text-[11px] font-mono uppercase tracking-wide text-[var(--ink-mute)]">
           {moodLabel(mood)}
         </div>
         <div className="font-display text-lg mt-0.5 max-w-xs">{statusLine}</div>
@@ -106,8 +110,9 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
         {!selectedCase && (
           <p className="text-sm text-[var(--ink-mute)] text-center py-6">
-            Select a filed position on the left. He only answers questions about the file
-            that&apos;s open.
+            {connected
+              ? "Select a filed position on the left. He only answers questions about the file that's open."
+              : "Once a wallet is connected and a position is filed, ask him about it here."}
           </p>
         )}
 
@@ -126,7 +131,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
         {error && <p className="text-sm text-[var(--tag-red)]">{error}</p>}
       </div>
 
-      <form onSubmit={ask} className="p-5 border-t hairline flex gap-3">
+      <form onSubmit={ask} className="p-5 border-t hairline flex gap-3 shrink-0">
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}

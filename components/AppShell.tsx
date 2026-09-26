@@ -5,12 +5,13 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import type { CaseFile } from "@/lib/types";
 import { WalletWidget } from "./WalletWidget";
 import { AgentPanel } from "./AgentPanel";
+import { HeroLeft } from "./HeroLeft";
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-export function Dashboard() {
+export function AppShell() {
   const { publicKey } = useWallet();
   const wallet = publicKey?.toBase58() ?? null;
 
@@ -58,23 +59,28 @@ export function Dashboard() {
     [cases, selectedCaseNo]
   );
 
-  if (!wallet) return null;
-
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 md:py-14">
-      <div className="grid lg:grid-cols-[1fr_1fr] gap-6 items-start">
-        <WalletWidget
-          walletShort={shortAddr(wallet)}
-          cases={cases}
-          loading={loading}
-          error={error}
-          selectedCaseNo={selectedCaseNo}
-          onSelect={setSelectedCaseNo}
-          onRescan={() => scan(wallet)}
-        />
-        <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-7rem)]">
-          <AgentPanel selectedCase={selectedCase} />
-        </div>
+    <div className="lg:flex lg:items-stretch">
+      <div className="lg:w-1/2 lg:min-w-0 lg:h-[calc(100dvh-3.5rem)] lg:overflow-y-auto">
+        {wallet ? (
+          <div className="px-6 md:px-10 py-8">
+            <WalletWidget
+              walletShort={shortAddr(wallet)}
+              cases={cases}
+              loading={loading}
+              error={error}
+              selectedCaseNo={selectedCaseNo}
+              onSelect={setSelectedCaseNo}
+              onRescan={() => scan(wallet)}
+            />
+          </div>
+        ) : (
+          <HeroLeft />
+        )}
+      </div>
+
+      <div className="lg:w-1/2 lg:h-[calc(100dvh-3.5rem)] border-t lg:border-t-0 lg:border-l hairline">
+        <AgentPanel selectedCase={selectedCase} />
       </div>
     </div>
   );

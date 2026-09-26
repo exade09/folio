@@ -1,11 +1,11 @@
-import { FolioCat } from "./FolioCat";
+import { MascotImage } from "./MascotImage";
 
 export function TweetCard() {
   return (
     <div className="panel folder-tab p-5 md:p-6 max-w-md">
       <div className="flex items-center gap-3">
-        <div className="rounded-full bg-[var(--wall-blue-soft)] p-1 shrink-0">
-          <FolioCat mood="idle" size={40} />
+        <div className="rounded-full overflow-hidden shrink-0">
+          <MascotImage mood="idle" size={40} />
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
