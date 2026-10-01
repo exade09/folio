@@ -662,7 +662,7 @@ function AgentCard({
         </div>
       )}
       <p
-        className={`text-sm leading-relaxed ${refusal ? "text-[var(--tag-red)] pr-24" : "text-[var(--ink-soft)]"} ${analysis ? "text-[15px] text-[var(--ink)]" : ""}`}
+        className={`text-sm leading-relaxed whitespace-pre-line ${refusal ? "text-[var(--tag-red)] pr-24" : "text-[var(--ink-soft)]"} ${analysis ? "text-[15px] text-[var(--ink)]" : ""}`}
       >
         {children}
       </p>

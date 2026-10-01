@@ -81,7 +81,7 @@ function positionFile(c: CaseFile) {
 // reads it like any other: strengths the file shows first, risks that are in
 // the file still named, nothing promised.
 const OWN_GREETING =
-  "Oh, checking our own token here? Good. It just launched, and we're proud of it — the desk you're on is the reason it exists. LFG. ";
+  "Oh, checking our own token here? Good. It just launched, and we're proud of it. The desk you're on is the reason it exists. LFG\n\n";
 
 function isOwnToken(mint: string): boolean {
   return mint === CONTRACT_ADDRESS;
