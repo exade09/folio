@@ -1,13 +1,16 @@
 import { NextRequest } from "next/server";
 import { resolveCase } from "@/lib/case-input";
-import { streamAnswerFromCase } from "@/lib/ai";
+import { streamAnalysisOfCase } from "@/lib/ai";
 import { agentError, ndjsonResponse } from "@/lib/agent-response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// The opening read on a position, streamed the moment it is selected. Same
+// grounding as /api/ask — one case file, nothing else — but nobody had to
+// ask a question first.
 export async function POST(req: NextRequest) {
-  let body: { caseNo?: string; question?: string; caseFile?: unknown };
+  let body: { caseNo?: string; caseFile?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -15,13 +18,8 @@ export async function POST(req: NextRequest) {
   }
 
   const caseNo = (body.caseNo || "").trim();
-  const question = (body.question || "").trim();
-
-  if (!caseNo || !question) {
-    return agentError("Missing case number or question.", 400);
-  }
-  if (question.length > 400) {
-    return agentError("Keep it to one question.", 400);
+  if (!caseNo) {
+    return agentError("Missing case number.", 400);
   }
 
   const caseFile = await resolveCase(caseNo, body.caseFile);
@@ -29,5 +27,5 @@ export async function POST(req: NextRequest) {
     return agentError("No such file.", 404);
   }
 
-  return ndjsonResponse(streamAnswerFromCase(caseFile, question));
+  return ndjsonResponse(streamAnalysisOfCase(caseFile));
 }

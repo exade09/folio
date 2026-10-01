@@ -81,24 +81,59 @@ file's JSON and instructs the model to answer only from it, cite which field
 it used, and say plainly when something isn't in the file. A buy/sell/
 investment-advice question is refused before the model is even called
 (`isAdviceRequest` in the same file) — that rule doesn't depend on the model
-choosing to follow the system prompt.
+choosing to follow the system prompt, and the patterns cover English and
+Russian, since the site is read in both.
+
+The same file builds a second prompt, `streamAnalysisOfCase`, for the opening
+read the agent gives the moment a position is selected: same grounding, same
+house rules, but asked to walk the five facts in the order that matters for that
+particular position and to close on what the file does not establish.
 
 ## Routes
 
 ```
-/                     landing page, what's in a file, what's real vs demo
-/wallet/[address]      case index for a connected wallet — scans + files on load
-/case/[caseNo]         one file: the five facts, sources, prior filings, ask box
+/                     the whole product: case index on the left, the analyst on the right
+/case/[caseNo]         one file on its own page: five facts, sources, prior filings, ask box
 /briefing              "this morning" — filed positions ranked by overnight move
 ```
+
+`/` is a two-pane shell. The left half is the wallet: the pitch before a wallet
+is connected, the case index after. The right half is the analyst, full height —
+mascot, status line, and the transcript for whichever position is selected.
+Selecting a position is what sets him working: he opens that file and reads it
+out unprompted, then takes questions about it. Selecting it again later does not
+spend a second call — the transcript is already there.
 
 ## API
 
 ```
 POST /api/scan      { wallet } → reads live token accounts, files new cases
-POST /api/ask        { caseNo, question } → grounded answer from that one file
+POST /api/analyze    { caseNo, caseFile? } → streams the opening read on that file
+POST /api/ask        { caseNo, question, caseFile? } → streams a grounded answer
 GET  /api/briefing   ?wallet= optional → movers, sorted by |overnight change|
 ```
+
+`/api/analyze` and `/api/ask` answer with newline-delimited JSON rather than a
+single object, one event per line, so the agent's text can be written out as the
+model produces it:
+
+```
+{"t":"delta","v":"The contract is 395 days old"}   a piece of the answer
+{"t":"refusal","v":"He does not answer that one…"} an advice question, refused
+{"t":"error","v":"…"}                              the analyst is unreachable
+{"t":"done"}                                        nothing further is coming
+```
+
+A refusal is decided before the model is called and arrives as a single event.
+`lib/agent-client.ts` reads this on the browser side; a chunk boundary can land
+mid-character, so the decoder stays in streaming mode and a partial last line is
+carried into the next read.
+
+The optional `caseFile` on both endpoints is the case object `/api/scan` already
+returned to the client. It is used only when the on-disk store has no such case —
+which is what happens on a serverless deployment, where the store cannot keep
+anything (see below). It is validated against the full `CaseFile` shape in
+`lib/case-input.ts` before it is allowed near a prompt.
 
 ## Manual QA without burning RPC quota
 
