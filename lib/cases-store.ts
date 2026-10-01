@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { CaseFile, WalletCaseIndexEntry } from "./types";
 
@@ -9,7 +10,16 @@ import type { CaseFile, WalletCaseIndexEntry } from "./types";
 // deploying anywhere with an ephemeral filesystem, the interface below is
 // the only thing that would need to move.
 
-const ROOT = path.join(process.cwd(), "data", "cases");
+// On Vercel the deployment directory is read-only; the only writable place is
+// the instance's temp dir. Filing there keeps /api/scan working, with the
+// catch that it is per-instance and short-lived: a case page served by a
+// different instance, or after a cold start, will not find the file. The
+// analyst panel does not depend on it (the client sends the case along — see
+// lib/case-input.ts). A real database is still the fix; this keeps the
+// product usable until then.
+const ROOT = process.env.VERCEL
+  ? path.join(os.tmpdir(), "folio-cases")
+  : path.join(process.cwd(), "data", "cases");
 const WALLETS_DIR = path.join(ROOT, "_wallets");
 const COUNTER_FILE = path.join(ROOT, "_counter.json");
 const RECENT_FILE = path.join(ROOT, "_recent.json");

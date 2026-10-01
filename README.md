@@ -70,7 +70,8 @@ list its own prior filings.
 
 This is a local, single-instance store — good for development and a small
 deployment with a persistent disk, not for a serverless platform with an
-ephemeral filesystem. Moving it to a real database (Postgres, SQLite on a
+ephemeral filesystem. On Vercel it writes to the instance's temp dir so
+`/api/scan` keeps working, but those files are per-instance and short-lived. Moving it to a real database (Postgres, SQLite on a
 volume, etc.) means replacing the file reads/writes in `cases-store.ts`; the
 function signatures are the seam.
 
@@ -147,6 +148,31 @@ balances from RPC" step is skipped. Run it with:
 ```bash
 npx tsx scripts/seed-demo-cases.ts
 ```
+
+## Motion
+
+Everything that moves is tuned from `lib/motion.ts` — curves, durations, springs,
+stagger — and built from the primitives in `components/motion/`, on
+[`motion`](https://motion.dev) for React. The house style is that things settle
+rather than bounce; the only deliberate overshoot is a stamp landing.
+
+- First visit in a session opens on a closed case file that swings open
+  (`components/motion/Intro.tsx`). A script in `<head>` (`lib/intro-script.ts`)
+  hides it before first paint for returning visitors and for reduced motion.
+- Behind the page: a ruled grid with slight parallax, a desk-lamp light that
+  follows the cursor, and dust drawn to a canvas (`Atmosphere.tsx`). Pointer
+  effects are off on touch devices; the canvas pauses when the tab is hidden.
+- `MotionConfig reducedMotion="user"` turns every transform into an instant
+  change for anyone who has asked for less motion; CSS loops stop too.
+
+## Wallet connection
+
+The provider connects only when the visitor has just asked to: clicking
+"Connect wallet" marks that intent (`lib/wallet-intent.ts`) and the provider's
+`autoConnect` callback turns it into a full `connect()`. A page load with a
+remembered wallet only tries a silent reconnect. With a plain
+`autoConnect={false}`, picking a wallet in the modal selected it and stopped
+there — nothing ever asked the wallet to connect.
 
 ## Notes
 
