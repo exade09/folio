@@ -29,7 +29,7 @@ const displayFont = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Folio — an analyst for your Solana wallet",
+  title: "Folio",
   description:
     "Connect a wallet or paste any token's contract address and Folio opens a file on it: age, holder concentration, liquidity next to market cap, who can still mint or freeze it, price and activity. Read live, every line sourced",
 };

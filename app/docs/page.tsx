@@ -7,7 +7,7 @@ import { DocsNav } from "@/components/DocsNav";
 import { AGENT_MODEL, CONTRACT_ADDRESS, X_HANDLE, X_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Docs — Folio",
+  title: "Folio",
   description: `How Folio's analyst works: built on ${AGENT_MODEL}, he opens a file on any Solana token from public sources and says what is true about it, never what to do about it`,
 };
 
