@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { CaseFile } from "./types";
 import type { TokenFile } from "./token-file";
+import { CONTRACT_ADDRESS } from "./site";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -75,9 +76,28 @@ function positionFile(c: CaseFile) {
   };
 }
 
+// Folio's own token. When a file is opened on it he says so up front — it is
+// the house's token and the reader should know that while reading — then
+// reads it like any other: strengths the file shows first, risks that are in
+// the file still named, nothing promised.
+const OWN_GREETING = "Oh, checking our own token here? Good. ";
+
+function isOwnToken(mint: string): boolean {
+  return mint === CONTRACT_ADDRESS;
+}
+
+function ownTokenNote(mint: string, opening: boolean): string {
+  if (!isOwnToken(mint)) return "";
+  return `
+This is Folio's own token, the one this site is built around.
+- ${opening ? `Your reply is already prefixed with "${OWN_GREETING.trim()}" — do not greet again. ` : ""}Write in English, whatever language the question is in.
+- Say once that it is Folio's own token, so the reader can weigh that.
+- Lead with the genuine strengths the file shows, in a warm, upbeat tone. Do not invent strengths, do not soften or leave out a risk line that is in the file, and make no price prediction or promise.`;
+}
+
 function askPrompt(caseFile: CaseFile): string {
   return `${TOKEN_RULES}
-7. Keep the answer to two or three sentences.
+7. Keep the answer to two or three sentences.${ownTokenNote(caseFile.mint, false)}
 
 Position file:
 ${JSON.stringify(positionFile(caseFile), null, 2)}`;
@@ -87,7 +107,7 @@ function analysisPrompt(caseFile: CaseFile): string {
   return `${TOKEN_RULES}
 7. This is the opening read on a position the visitor holds, written before anyone has asked anything. Four to six sentences, one paragraph, no headings. Do not restate the balance unless it matters next to the market figures.
 8. Lead with whatever is most striking about this token — live authorities or extensions first if there are any, then concentration, liquidity next to market cap, and age — and say what the numbers mean next to each other.
-9. Close on what the file does not establish, in one sentence, drawing on "notChecked".
+9. Close on what the file does not establish, in one sentence, drawing on "notChecked".${ownTokenNote(caseFile.mint, true)}
 
 Position file:
 ${JSON.stringify(positionFile(caseFile), null, 2)}`;
@@ -95,7 +115,7 @@ ${JSON.stringify(positionFile(caseFile), null, 2)}`;
 
 function tokenAskPrompt(file: TokenFile): string {
   return `${TOKEN_RULES}
-7. Keep the answer to two or three sentences.
+7. Keep the answer to two or three sentences.${ownTokenNote(file.mint, false)}
 
 Token file:
 ${JSON.stringify(file, null, 2)}`;
@@ -105,7 +125,7 @@ function tokenAnalysisPrompt(file: TokenFile): string {
   return `${TOKEN_RULES}
 7. This is the opening read on the file, written before anyone has asked anything. Four to six sentences, one paragraph, no headings.
 8. Lead with whatever is most striking about this token — live authorities or extensions first if there are any, then concentration, liquidity next to market cap, and age — and say what the numbers mean next to each other.
-9. Close on what the file does not establish, in one sentence, drawing on "notChecked".
+9. Close on what the file does not establish, in one sentence, drawing on "notChecked".${ownTokenNote(file.mint, true)}
 
 Token file:
 ${JSON.stringify(file, null, 2)}`;
@@ -230,9 +250,18 @@ export function streamAnswerFromCase(
   return withoutFinalPeriod(streamCompletion(askPrompt(caseFile), question, 260));
 }
 
+/** Puts the own-token greeting in front of an opening read, if it applies. */
+async function* greeted(mint: string, events: AsyncGenerator<AgentEvent>): AsyncGenerator<AgentEvent> {
+  if (isOwnToken(mint)) yield { t: "delta", v: OWN_GREETING };
+  yield* events;
+}
+
 export function streamAnalysisOfCase(caseFile: CaseFile): AsyncGenerator<AgentEvent> {
   return withoutFinalPeriod(
-    streamCompletion(analysisPrompt(caseFile), `Open the file on ${caseFile.symbol} and give me your read on it.`, 420)
+    greeted(
+      caseFile.mint,
+      streamCompletion(analysisPrompt(caseFile), `Open the file on ${caseFile.symbol} and give me your read on it.`, 420)
+    )
   );
 }
 
@@ -251,7 +280,10 @@ export function streamTokenFile(file: TokenFile, question?: string): AsyncGenera
   }
   const inner = question
     ? streamCompletion(tokenAskPrompt(file), question, 260)
-    : streamCompletion(tokenAnalysisPrompt(file), `Open the file on ${file.symbol} and give me your read on it.`, 420);
+    : greeted(
+        file.mint,
+        streamCompletion(tokenAnalysisPrompt(file), `Open the file on ${file.symbol} and give me your read on it.`, 420)
+      );
   return (async function* () {
     yield { t: "file", v: file } as AgentEvent;
     yield* withoutFinalPeriod(inner);
