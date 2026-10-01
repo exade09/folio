@@ -800,8 +800,8 @@ html[data-intro="skip"] .intro-cover {
 /* Mood rings around the analyst — the character itself is untouched. */
 .mood-ring {
   position: absolute;
-  inset: -14px;
-  border-radius: 34px;
+  inset: -12px;
+  border-radius: 999px;
   border: 1.5px dashed currentColor;
   opacity: 0.45;
 }
@@ -818,8 +818,8 @@ html[data-intro="skip"] .intro-cover {
 
 .mood-pulse {
   position: absolute;
-  inset: 0;
-  border-radius: 30px;
+  inset: 4px;
+  border-radius: 999px;
   border: 2px solid currentColor;
   animation: mood-pulse 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
@@ -858,4 +858,16 @@ html[data-intro="skip"] .intro-cover {
 
 .think-dots-light i {
   background: var(--paper-card);
+}
+
+/* The edge of the clerk's desk, drawn across the bottom of his picture. */
+.desk-edge {
+  position: relative;
+  width: 232px;
+  height: 12px;
+  margin: -3px auto 0;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(180deg, var(--paper-card) 0%, var(--paper-soft) 55%, var(--manila-deep) 100%);
+  border: 1.5px solid var(--hairline-strong);
+  box-shadow: 0 10px 18px -10px rgba(34, 48, 71, 0.55);
 }

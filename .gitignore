@@ -45,3 +45,7 @@ next-env.d.ts
 # runtime case file store (generated data, not source)
 /data/cases/*
 !/data/cases/.gitkeep
+
+# full-size source art for the mascot (~1.6 MB each); the site ships the
+# optimised WebP copies in public/mascot/
+/folio-*.png

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 export type MascotMood = "idle" | "thinking" | "answering" | "refusing" | "error" | "filed";
+
+const MOODS: MascotMood[] = ["idle", "thinking", "answering", "refusing", "error", "filed"];
 
 const MOOD_LABEL: Record<MascotMood, string> = {
   idle: "Waiting",
@@ -17,93 +17,52 @@ export function moodLabel(mood: MascotMood) {
   return MOOD_LABEL[mood];
 }
 
-// Real art lives in /public/mascot/<mood>.png — drop the six files in and
-// this picks them up automatically. Checked via a plain Image() preload
-// (not the rendered <img>'s own onError) because a missing SSR'd image
-// errors before React hydrates and attaches a listener, so that event is
-// otherwise missed. Until a mood's file exists, a plain placeholder renders
-// instead of pretending to be the real character.
-function assetFor(mood: MascotMood) {
-  return `/mascot/${mood}.png`;
-}
-
-const checked = new Map<string, boolean>();
-
-function useImageExists(src: string): boolean | null {
-  const [exists, setExists] = useState<boolean | null>(checked.get(src) ?? null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (checked.has(src)) {
-      void Promise.resolve().then(() => {
-        if (!cancelled) setExists(checked.get(src)!);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const img = new window.Image();
-    img.onload = () => {
-      if (cancelled) return;
-      checked.set(src, true);
-      setExists(true);
-    };
-    img.onerror = () => {
-      if (cancelled) return;
-      checked.set(src, false);
-      setExists(false);
-    };
-    img.src = src;
-    return () => {
-      cancelled = true;
-    };
-  }, [src]);
-
-  return exists;
-}
-
+/**
+ * The clerk. Art lives in /public/mascot/<mood>.webp: square, transparent,
+ * with the body cut by the bottom edge on purpose, so the frame he sits in can
+ * put a desk along that edge.
+ *
+ * Where his mood changes (the analyst panel), all six poses are mounted at
+ * once and only the current one is visible, so a mood change cross-fades
+ * between pictures that are already decoded instead of blinking while the
+ * next one loads. Where he never changes (an avatar), pass `still` and only
+ * the one picture is fetched.
+ */
 export function MascotImage({
   mood = "idle",
   size = 220,
+  still = false,
   className = "",
 }: {
   mood?: MascotMood;
   size?: number;
+  still?: boolean;
   className?: string;
 }) {
-  const src = assetFor(mood);
-  const exists = useImageExists(src);
-
+  const shown = still ? [mood] : MOODS;
   return (
     <div
-      className={`mascot-frame mascot-anim-${mood} ${className}`}
+      className={`mascot-frame mascot-anim-${mood} relative ${className}`}
       style={{ width: size, height: size }}
+      role="img"
+      aria-label={`Folio's analyst, currently ${moodLabel(mood).toLowerCase()}`}
     >
-      {exists ? (
+      {shown.map((m) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={src}
-          alt={`Folio's analyst, currently ${moodLabel(mood).toLowerCase()}`}
+          key={m}
+          src={`/mascot/${m}.webp`}
+          alt=""
+          aria-hidden="true"
           width={size}
           height={size}
-          className="w-full h-full object-contain rounded-3xl"
           draggable={false}
+          decoding="async"
+          loading={m === mood ? "eager" : "lazy"}
+          className="absolute inset-0 w-full h-full object-contain select-none transition-opacity duration-200 ease-out"
+          style={{ opacity: m === mood ? 1 : 0 }}
         />
-      ) : (
-        <div
-          className="w-full h-full rounded-3xl flex flex-col items-center justify-center gap-1 border-2 border-dashed"
-          style={{ borderColor: "var(--hairline-strong)", background: "var(--wall-blue-soft)" }}
-        >
-          <span className="text-3xl" aria-hidden="true">
-            🐾
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--ink-mute)] text-center px-2">
-            {mood}.png missing
-          </span>
-        </div>
-      )}
+      ))}
     </div>
   );
 }

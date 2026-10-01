@@ -174,6 +174,19 @@ balances from RPC" step is skipped. Run it with:
 npx tsx scripts/seed-demo-cases.ts
 ```
 
+## Brand and header
+
+- **The clerk.** Six poses in `public/mascot/` (WebP, 512 px, transparent; see
+  the README there). In the analyst panel all six are mounted at once and
+  cross-fade, so a mood change never waits on a download; avatars load one.
+- **Logo and icons.** `public/brand/folio-mark.webp` in the header, and
+  `app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`, all cut from the
+  idle pose.
+- **Contract address.** `CONTRACT_ADDRESS` in `lib/site.ts`, shown in the
+  header as `CA: …` and copied whole on click. `NEXT_PUBLIC_FOLIO_CA`
+  overrides it without a code change.
+- **X.** `X_URL` in the same file; the header links to it.
+
 ## The front desk
 
 Before a wallet is connected, the pitch shows live files on a few tokens

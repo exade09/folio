@@ -1,15 +1,17 @@
-Drop the six mood images here, named exactly:
+The clerk, one picture per mood, as used by `components/MascotImage.tsx`:
 
 ```
-idle.png
-thinking.png
-answering.png
-refusing.png
-error.png
-filed.png
+idle.webp  thinking.webp  answering.webp  refusing.webp  error.webp  filed.webp
 ```
 
-`components/MascotImage.tsx` requests `/mascot/<mood>.png` and falls back to a
-plain placeholder card until a file exists — nothing else needs to change.
-Square, ~800–1024px, same character framing across all six so the swap
-between moods doesn't jump around.
+512×512, transparent, the body cut off by the bottom edge on purpose — the
+analyst panel draws a desk along that edge. Made from the full-size PNGs
+(`folio-*.png`, kept out of git) by cleaning the near-invisible fringe the
+background removal left, squaring onto a bottom-aligned canvas, and encoding
+WebP at quality 86: about 40 KB each instead of ~1.6 MB.
+
+The header mark (`public/brand/folio-mark.webp`) and the favicon, app icon and
+Apple touch icon (`app/favicon.ico`, `app/icon.png`, `app/apple-icon.png`) are
+cut from `idle`: head and tie, on the brand blue for the icons.
+
+`PROMPTS.md` has the image prompts the poses were generated from.

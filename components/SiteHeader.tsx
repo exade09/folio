@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { ConnectButton } from "./ConnectButton";
 import { SoundToggle } from "./SoundToggle";
+import { CaChip } from "./CaChip";
+import { XLink } from "./XLink";
 import { useIntroReady } from "./motion/Intro";
 import { dur, ease } from "@/lib/motion";
 
@@ -21,25 +23,49 @@ export function SiteHeader() {
       animate={ready ? { y: 0, opacity: 1 } : undefined}
       transition={{ duration: dur.long, ease: ease.glide, delay: 0.05 }}
     >
-      <div className="w-full h-14 px-5 flex items-center justify-between gap-4">
-        <Link href="/" className="group flex items-center gap-2 shrink-0" aria-label="Folio, home">
-          <FolderGlyph />
-          <span className="font-display text-base tracking-tight flex overflow-hidden" aria-hidden="true">
-            {WORD.split("").map((ch, i) => (
-              <motion.span
-                key={i}
-                className="inline-block"
-                initial={{ y: "110%" }}
-                animate={ready ? { y: "0%" } : undefined}
-                transition={{ delay: 0.25 + i * 0.045, duration: dur.base, ease: ease.glide }}
-              >
-                {ch}
-              </motion.span>
-            ))}
-          </span>
-        </Link>
+      {/* From md up, three columns so the nav stays centred however wide the
+          CA gets. Below that the nav is hidden, and a hidden grid item takes
+          no cell — the row becomes a plain space-between flex instead. */}
+      <div className="w-full h-14 px-4 sm:px-5 flex justify-between md:grid md:grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/" className="group flex items-center gap-2 shrink-0" aria-label="Folio, home">
+            <motion.img
+              src="/brand/folio-mark.webp"
+              alt=""
+              width={30}
+              height={30}
+              className="w-[30px] h-[30px] select-none"
+              draggable={false}
+              initial={{ scale: 0.6, opacity: 0, rotate: -12 }}
+              animate={ready ? { scale: 1, opacity: 1, rotate: 0 } : undefined}
+              whileHover={{ rotate: [0, -8, 6, 0], transition: { duration: 0.5 } }}
+              transition={{ type: "spring", stiffness: 420, damping: 18, delay: 0.15 }}
+            />
+            <span className="font-display text-base tracking-tight hidden sm:flex overflow-hidden" aria-hidden="true">
+              {WORD.split("").map((ch, i) => (
+                <motion.span
+                  key={i}
+                  className="inline-block"
+                  initial={{ y: "110%" }}
+                  animate={ready ? { y: "0%" } : undefined}
+                  transition={{ delay: 0.25 + i * 0.045, duration: dur.base, ease: ease.glide }}
+                >
+                  {ch}
+                </motion.span>
+              ))}
+            </span>
+          </Link>
+          <motion.div
+            className="min-w-0"
+            initial={{ opacity: 0, x: -8 }}
+            animate={ready ? { opacity: 1, x: 0 } : undefined}
+            transition={{ delay: 0.45, duration: dur.base, ease: ease.settle }}
+          >
+            <CaChip />
+          </motion.div>
+        </div>
 
-        <nav className="hidden sm:flex items-center gap-7 text-sm font-semibold text-[var(--ink-mute)]">
+        <nav className="hidden md:flex items-center gap-7 text-sm font-semibold text-[var(--ink-mute)]">
           <Link
             href="/"
             className={`nav-link transition-colors hover:text-[var(--foreground)] ${pathname === "/" ? "text-[var(--foreground)]" : ""}`}
@@ -54,32 +80,12 @@ export function SiteHeader() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-end gap-2 md:col-start-3 shrink-0">
+          <XLink />
           <SoundToggle />
           <ConnectButton size="sm" />
         </div>
       </div>
     </motion.header>
-  );
-}
-
-/** A folder whose front flap lifts when the wordmark is hovered. */
-function FolderGlyph() {
-  return (
-    <svg width="22" height="18" viewBox="0 0 22 18" fill="none" aria-hidden="true" className="shrink-0">
-      <path
-        d="M1.5 3.5a2 2 0 0 1 2-2h4.2l2 2h8.8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-11Z"
-        fill="var(--manila-deep)"
-        stroke="var(--ink)"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M1.5 7h19v7.5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V7Z"
-        fill="var(--manila)"
-        stroke="var(--ink)"
-        strokeWidth="1.3"
-        className="origin-bottom transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover:[transform:skewX(-8deg)_scaleY(0.82)]"
-      />
-    </svg>
   );
 }

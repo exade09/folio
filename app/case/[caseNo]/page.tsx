@@ -36,8 +36,8 @@ export default async function CasePage({ params }: { params: Promise<{ caseNo: s
 
       <div className="mt-7 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="rounded-2xl overflow-hidden shrink-0">
-            <MascotImage mood="idle" size={64} />
+          <div className="rounded-2xl overflow-hidden shrink-0 bg-[#5a8df0]">
+            <MascotImage mood="idle" size={64} still />
           </div>
           <TokenAvatar symbol={caseFile.symbol} logoUri={caseFile.logoUri} size={48} />
           <div>

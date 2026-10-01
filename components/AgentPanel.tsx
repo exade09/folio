@@ -330,7 +330,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
               {(mood === "refusing" || mood === "error" || mood === "filed") && (
                 <motion.span
                   key={`flash-${mood}`}
-                  className="absolute inset-0 rounded-[30px] border-2 border-current"
+                  className="absolute inset-0 rounded-full border-2 border-current"
                   initial={{ opacity: 0.9, scale: 1 }}
                   animate={{ opacity: 0, scale: 1.5 }}
                   exit={{ opacity: 0 }}
@@ -339,9 +339,13 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
               )}
             </AnimatePresence>
             <div className="relative">
-              <MascotImage mood={mood} size={164} />
+              <MascotImage mood={mood} size={176} />
             </div>
           </div>
+          {/* The art cuts his body off at the bottom edge on purpose: a desk
+              runs along that edge, so he reads as sitting behind it. Outside
+              the ring wrapper, so the mood rings stay centred on him. */}
+          <div className="desk-edge" aria-hidden="true" />
 
           <div className="mt-4 h-4 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
