@@ -15,7 +15,8 @@ Originally described for a Robinhood Chain launch; rebuilt here for Solana.
 | Framework | Next.js 16, App Router, Turbopack                              |
 | Styling   | Tailwind CSS v4 + a hand-built "case file" design system in `app/globals.css` |
 | Fonts     | Geist Sans / Geist Mono, Source Serif 4 for display, via `next/font` |
-| Chain     | Solana mainnet-beta, read-only                                 |
+| Chain     | Solana mainnet-beta, read-only, through Helius RPC (server-side) |
+| Storage   | Postgres on Neon (via the Vercel integration); JSON files locally |
 | Wallet    | Wallet Standard auto-detection via `@solana/wallet-adapter-react` (no per-wallet adapter package needed for Phantom, Solflare, Backpack, …) |
 | AI        | OpenAI Chat Completions, grounded strictly to one case file per call |
 
@@ -26,25 +27,34 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Set `OPENAI_API_KEY` in `.env.local` (see
-`.env.example`) before the "ask" box on a case file will answer — without it,
-the rest of the product still works, the ask box just reports the analyst is
-unreachable.
+Open `http://localhost:3000`. Copy `.env.example` to `.env.local` and fill in:
+
+- `OPENAI_API_KEY` — without it the analyst reports he is unreachable; the
+  rest of the product still works.
+- `HELIUS_API_KEY` — the RPC the server reads wallets through. Without it the
+  public endpoint is used, which rate-limits within a few scans.
+- `DATABASE_URL` — optional locally. Set it (`vercel env pull .env.local`
+  copies the project's) to file cases into Neon; leave it empty and cases are
+  JSON files under `data/cases/`.
+
+All three are server-only. None of them may go in a `NEXT_PUBLIC_*` variable.
 
 ## What's real today and what isn't
 
 This is the one thing the product cannot afford to fudge, so it's spelled out
 plainly rather than left to be discovered:
 
-- **Real, live:** the wallet connection, the list of SPL tokens it holds, and
-  their balances — read straight off Solana mainnet-beta with a public RPC
-  call. Token name/symbol/logo come from Jupiter's public token list
-  (`lite-api.jup.ag`) when a mint is listed there; unlisted mints fall back to
-  a shortened address, never a made-up name.
+- **Real, live:** the wallet connection, the list of tokens it holds (classic
+  SPL and Token-2022, with several accounts for one mint summed), and their
+  balances — read straight off Solana mainnet-beta through Helius. Token
+  name/symbol/logo come from Jupiter's public token list (`lite-api.jup.ag`)
+  when a mint is listed there; unlisted mints fall back to a shortened address,
+  never a made-up name.
 - **Simulated, clearly marked "Demo":** the five analytical facts inside each
   file — contract age, holder concentration, liquidity location and lock
-  status, creator fee collector, social activity. These need a paid indexer
-  (Helius or Birdeye) that this build doesn't have a key for yet. Every fact
+  status, creator fee collector, social activity. Reading them needs indexer
+  calls (Helius, plus a DEX source for liquidity) that are not wired in yet —
+  the Helius connection is only used to read balances so far. Every fact
   carries a `confidence: "demo" | "live"` tag end to end — in the JSON, in the
   UI stamp next to it, and in what the AI analyst is told to disclose when
   asked about it. Nothing simulated is ever presented as live.
@@ -60,20 +70,35 @@ other change.
 
 ## How a file is filed
 
-`lib/cases-store.ts` is a small append-only JSON store (`data/cases/`, git-
-ignored). Scanning a wallet always writes brand new case numbers
-(`F-000001`, `F-000002`, …); an existing case file is never opened for
-writing again. Re-scanning the same position files a new case rather than
-updating the old one, and the old one stays exactly as it was — including a
-number that later reads as wrong. `getCaseHistory` is what a case page uses to
-list its own prior filings.
+Every scan files brand new cases (`F-000001`, `F-000002`, …). A case, once
+filed, is never opened for writing again: re-scanning a position files a new
+case, and the old one stays exactly as it was — including a number that later
+reads as wrong. A case page lists its own earlier filings.
 
-This is a local, single-instance store — good for development and a small
-deployment with a persistent disk, not for a serverless platform with an
-ephemeral filesystem. On Vercel it writes to the instance's temp dir so
-`/api/scan` keeps working, but those files are per-instance and short-lived. Moving it to a real database (Postgres, SQLite on a
-volume, etc.) means replacing the file reads/writes in `cases-store.ts`; the
-function signatures are the seam.
+`lib/cases-store.ts` is the only thing the app imports, and it picks one of two
+stores by environment:
+
+- **Postgres** (`lib/store/pg-store.ts`), when `DATABASE_URL` is set — what
+  production runs on, via Neon's HTTP driver. One table, `folio_cases`, written
+  only by `INSERT`. Numbers come from a sequence, so any number of serverless
+  instances filing at once never hand out the same one. A trigger rejects
+  `UPDATE`, `DELETE` and `TRUNCATE` on the table, so the never-edited rule holds
+  in the database itself, for anyone holding the connection string — not just
+  for this app. The schema is created on first use, idempotently, inside one
+  transaction that takes an advisory lock, so two cold instances cannot trip
+  over each other creating it.
+- **JSON files** (`lib/store/file-store.ts`), when it is not — for local
+  development. Filings in a process run one at a time: `/api/scan` files a
+  wallet's positions in parallel, and the counter's read-then-write used to let
+  parallel filings take the same number and overwrite each other (twelve
+  positions came out as two files). Case files are written with `wx`, so a
+  stale counter fails loudly rather than replacing a filed case. On Vercel
+  without a database it writes to the instance's temp dir, which keeps scans
+  working but forgets them on the next cold start.
+
+Re-reading a file does not need the store to have kept it: the client sends
+the case it was given back with every question (`lib/case-input.ts`), so the
+analyst answers either way.
 
 ## The AI analyst
 
