@@ -10,3 +10,6 @@ export const CONTRACT_ADDRESS =
 
 export const X_URL = "https://x.com/folioclerk";
 export const X_HANDLE = "@folioclerk";
+
+/** The model the analyst runs on, as the docs name it. Keep OPENAI_MODEL in step. */
+export const AGENT_MODEL = "GPT-6 ASTRA";

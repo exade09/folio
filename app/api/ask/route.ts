@@ -11,22 +11,22 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return agentError("Malformed request body.", 400);
+    return agentError("Malformed request body", 400);
   }
 
   const caseNo = (body.caseNo || "").trim();
   const question = (body.question || "").trim();
 
   if (!caseNo || !question) {
-    return agentError("Missing case number or question.", 400);
+    return agentError("Missing case number or question", 400);
   }
   if (question.length > 400) {
-    return agentError("Keep it to one question.", 400);
+    return agentError("Keep it to one question", 400);
   }
 
   const caseFile = await resolveCase(caseNo, body.caseFile);
   if (!caseFile) {
-    return agentError("No such file.", 404);
+    return agentError("No such file", 404);
   }
 
   return ndjsonResponse(streamAnswerFromCase(caseFile, question));

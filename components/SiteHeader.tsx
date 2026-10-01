@@ -78,9 +78,22 @@ export function SiteHeader() {
           >
             This morning
           </Link>
+          <Link
+            href="/docs"
+            className={`nav-link transition-colors hover:text-[var(--foreground)] ${pathname?.startsWith("/docs") ? "text-[var(--foreground)]" : ""}`}
+          >
+            Docs
+          </Link>
         </nav>
 
         <div className="flex items-center justify-end gap-2 md:col-start-3 shrink-0">
+          {/* The centre nav is hidden on a phone; Docs stays one tap away. */}
+          <Link
+            href="/docs"
+            className="md:hidden text-[13px] font-semibold text-[var(--ink-mute)] hover:text-[var(--foreground)] px-1"
+          >
+            Docs
+          </Link>
           <XLink />
           <SoundToggle />
           <ConnectButton size="sm" />

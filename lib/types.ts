@@ -1,35 +1,15 @@
-export type Confidence = "live" | "demo";
+import type { TokenFile } from "./token-file";
 
-export interface SourcedFact<T> {
-  value: T;
-  source: string;
-  confidence: Confidence;
-}
-
-export interface PositionFacts {
-  contractAge: SourcedFact<{ days: number; filedOn: string }>;
-  holderConcentration: SourcedFact<{ holderCount: number; top10Pct: number; top1Pct: number }>;
-  liquidity: SourcedFact<{
-    venue: string;
-    lockedPct: number;
-    canLeave: boolean;
-    poolAddressShort: string;
-  }>;
-  creatorFee: SourcedFact<{
-    venue: string;
-    collectorShort: string;
-    collectorFull: string;
-    unclaimedSol: number;
-    splitNote: string;
-  }>;
-  socials: SourcedFact<{
-    lastActivity: string;
-    status: "active" | "quiet" | "silent";
-    handles: { twitter?: string; telegram?: string; website?: string };
-  }>;
-}
-
+/**
+ * One filed position: what the wallet held when the file was opened, and the
+ * live file on that token read at the same moment — the chain, Jupiter and
+ * DexScreener, each line naming its source.
+ *
+ * Version 2. Files opened before Folio read live sources carried simulated
+ * facts instead; those are not served any more (see normalizeCase).
+ */
 export interface CaseFile {
+  version: 2;
   caseNo: string;
   filedAt: string;
   wallet: string;
@@ -39,9 +19,20 @@ export interface CaseFile {
   logoUri?: string;
   balanceUi: number;
   decimals: number;
-  metadataSource: Confidence;
-  overnightChangePct: number;
-  facts: PositionFacts;
+  /** Balance times Jupiter's price when filed, if Jupiter prices it. */
+  valueUsd?: number;
+  /** Jupiter's 24-hour price change when filed. */
+  change24hPct?: number;
+  /** Null when the token could not be read at filing time. */
+  token: TokenFile | null;
+}
+
+/** A stored record is served only if it is a current-format file. */
+export function normalizeCase(raw: unknown): CaseFile | null {
+  if (!raw || typeof raw !== "object") return null;
+  const c = raw as Partial<CaseFile>;
+  if (c.version !== 2 || typeof c.caseNo !== "string" || typeof c.mint !== "string") return null;
+  return c as CaseFile;
 }
 
 export interface WalletCaseIndexEntry {

@@ -18,12 +18,10 @@ interface Specimen {
   ageDays: number;
   top10: number;
   venue: string;
-  locked: number;
-  canLeave: boolean;
-  collector: string;
-  unclaimed: number;
-  social: "active" | "quiet" | "silent";
-  lastPost: string;
+  liqOfCap: number;
+  mintRenounced: boolean;
+  freezeRenounced: boolean;
+  change24h: number;
 }
 
 const SPECIMENS: Specimen[] = [
@@ -33,25 +31,21 @@ const SPECIMENS: Specimen[] = [
     ageDays: 412,
     top10: 38.2,
     venue: "Raydium CLMM",
-    locked: 91,
-    canLeave: false,
-    collector: "D4yx…aRpJ",
-    unclaimed: 12.4,
-    social: "quiet",
-    lastPost: "6 days ago",
+    liqOfCap: 14.6,
+    mintRenounced: true,
+    freezeRenounced: true,
+    change24h: -3.4,
   },
   {
     ticker: "$STAPLE",
     caseNo: "F-000215",
     ageDays: 9,
     top10: 71.6,
-    venue: "pump.fun curve",
-    locked: 0,
-    canLeave: true,
-    collector: "8Qm2…Lp4c",
-    unclaimed: 146.08,
-    social: "active",
-    lastPost: "today",
+    venue: "PumpSwap",
+    liqOfCap: 3.1,
+    mintRenounced: true,
+    freezeRenounced: false,
+    change24h: 48.2,
   },
   {
     ticker: "$DRAWER",
@@ -59,12 +53,10 @@ const SPECIMENS: Specimen[] = [
     ageDays: 188,
     top10: 22.9,
     venue: "Meteora DLMM",
-    locked: 64,
-    canLeave: true,
-    collector: "Hs7v…3xWe",
-    unclaimed: 0.9,
-    social: "silent",
-    lastPost: "41 days ago",
+    liqOfCap: 8.8,
+    mintRenounced: false,
+    freezeRenounced: true,
+    change24h: -12.7,
   },
 ];
 
@@ -127,11 +119,11 @@ export function SpecimenFile({ play }: { play: boolean }) {
             animate={play ? "shown" : "hidden"}
             variants={{ shown: { transition: { staggerChildren: stagger.loose * 2.2, delayChildren: 0.25 } } }}
           >
-            <Line n={1} label="Contract age" hint="How long the mint has existed.">
+            <Line n={1} label="Age" hint="Days since its first pool">
               <CountUp value={s.ageDays} suffix=" days" delay={0.35} className="font-display text-lg" />
             </Line>
 
-            <Line n={2} label="Holder concentration" hint="What the top 10 hold.">
+            <Line n={2} label="Holders" hint="What the top 10 hold">
               <div className="flex items-center gap-3 w-full">
                 <span className="font-display text-lg shrink-0">
                   <CountUp value={s.top10} decimals={1} suffix="%" delay={0.55} />
@@ -140,35 +132,32 @@ export function SpecimenFile({ play }: { play: boolean }) {
               </div>
             </Line>
 
-            <Line n={3} label="Liquidity" hint="Where it sits, and whether it can leave.">
+            <Line n={3} label="Liquidity" hint="Next to market cap, and where it sits">
               <div className="flex items-center gap-3 w-full">
                 <span className="font-display text-lg shrink-0">{s.venue}</span>
-                <Meter pct={s.locked} tone="green" delay={0.85} />
-                <span
-                  className={`text-[10px] font-mono uppercase tracking-wide shrink-0 ${s.canLeave ? "text-[var(--tag-red)]" : "text-[var(--lamp-green)]"}`}
-                >
-                  {s.locked}% · {s.canLeave ? "can leave" : "locked"}
+                <Meter pct={s.liqOfCap} tone={s.liqOfCap < 5 ? "red" : "green"} delay={0.85} />
+                <span className="text-[10px] font-mono uppercase tracking-wide shrink-0 text-[var(--ink-mute)]">
+                  {s.liqOfCap}% of mcap
                 </span>
               </div>
             </Line>
 
-            <Line n={4} label="Creator fee" hint="Who collects it, and what's unclaimed.">
-              <span className="font-mono text-sm">
-                <Scramble text={s.collector} delay={900} />{" "}
-                <span className="text-[var(--ink-mute)]">·</span>{" "}
-                <CountUp value={s.unclaimed} decimals={2} suffix=" SOL" delay={1.05} />
+            <Line n={4} label="Authorities" hint="Who can still mint or freeze">
+              <span className="flex flex-wrap items-center gap-2 text-[12px] font-semibold">
+                <span className={s.mintRenounced ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}>
+                  {s.mintRenounced ? "Mint renounced" : "Mint authority live"}
+                </span>
+                <span className="text-[var(--ink-mute)]">·</span>
+                <span className={s.freezeRenounced ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}>
+                  {s.freezeRenounced ? "Freeze renounced" : "Freeze authority live"}
+                </span>
               </span>
             </Line>
 
-            <Line n={5} label="Socials" hint="When they last posted anywhere.">
-              <span className="flex items-center gap-2 text-sm">
-                <span
-                  className="live-dot"
-                  data-tone={s.social === "active" ? undefined : s.social === "quiet" ? "brass" : "mute"}
-                  aria-hidden="true"
-                />
-                <span className="font-display text-lg capitalize">{s.social}</span>
-                <span className="text-[var(--ink-mute)]">· last post {s.lastPost}</span>
+            <Line n={5} label="Market" hint="Price change over 24 hours">
+              <span className={`font-mono text-lg ${s.change24h >= 0 ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}`}>
+                {s.change24h >= 0 ? "▲ " : "▼ "}
+                <CountUp value={s.change24h} decimals={1} suffix="%" signed delay={1.05} />
               </span>
             </Line>
           </motion.ol>

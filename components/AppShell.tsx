@@ -27,6 +27,11 @@ export function AppShell({ desk }: { desk: FeaturedDesk | null }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCaseNo, setSelectedCaseNo] = useState<string | null>(null);
+  const [caseNonce, setCaseNonce] = useState(0);
+  const selectCase = useCallback((no: string | null) => {
+    setSelectedCaseNo(no);
+    setCaseNonce((n) => n + 1);
+  }, []);
 
   const scan = useCallback(async (address: string) => {
     setLoading(true);
@@ -39,14 +44,14 @@ export function AppShell({ desk }: { desk: FeaturedDesk | null }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Could not open files for that wallet.");
+        setError(data.error || "Could not open files for that wallet");
         setCases(null);
         play("error");
       } else {
         setCases(data.cases);
       }
     } catch {
-      setError("The scan didn't reach the server. Try again.");
+      setError("The scan didn't reach the server. Try again");
       play("error");
     } finally {
       setLoading(false);
@@ -104,7 +109,7 @@ export function AppShell({ desk }: { desk: FeaturedDesk | null }) {
                 loading={loading}
                 error={error}
                 selectedCaseNo={selectedCaseNo}
-                onSelect={setSelectedCaseNo}
+                onSelect={selectCase}
                 onRescan={() => scan(wallet)}
               />
             </motion.div>
@@ -123,12 +128,13 @@ export function AppShell({ desk }: { desk: FeaturedDesk | null }) {
       </div>
 
       <motion.div
+        id="analyst"
         className="lg:w-1/2 lg:h-[calc(100dvh-3.5rem)] border-t lg:border-t-0 lg:border-l hairline relative"
         initial={{ opacity: 0, x: 60 }}
         animate={ready ? { opacity: 1, x: 0 } : undefined}
         transition={{ duration: dur.cinematic, ease: ease.glide, delay: 0.35 }}
       >
-        <AgentPanel selectedCase={selectedCase} />
+        <AgentPanel selectedCase={selectedCase} caseNonce={caseNonce} />
       </motion.div>
     </div>
   );

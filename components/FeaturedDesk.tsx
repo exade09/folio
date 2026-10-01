@@ -6,6 +6,7 @@ import type { FeaturedDesk as Desk, FeaturedToken } from "@/lib/featured";
 import { dur, ease, spring, stagger } from "@/lib/motion";
 import { shortAddr, shortDate, signedPct, usdCompact, usdPrice, utcTime } from "@/lib/format-money";
 import { play } from "@/lib/sound";
+import { requestOpenCa } from "@/lib/open-ca";
 import { TokenAvatar } from "./TokenAvatar";
 import { CountUp } from "./motion/CountUp";
 import { Scramble } from "./motion/Scramble";
@@ -108,7 +109,7 @@ export function FeaturedDesk({ desk, play: ready }: { desk: Desk; play: boolean 
                   />
                 )}
                 <span className="relative">
-                  <TokenAvatar symbol={tok.symbol} logoUri={tok.icon} size={22} />
+                  <TokenAvatar symbol={tok.symbol} mint={tok.mint} logoUri={tok.icon} size={22} />
                 </span>
                 <span className="relative font-bold">{tok.symbol}</span>
                 {tok.change24hPct !== undefined && (
@@ -154,7 +155,7 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
       <header className="px-5 pt-4 pb-4 border-b hairline">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <TokenAvatar symbol={t.symbol} logoUri={t.icon} size={40} />
+            <TokenAvatar symbol={t.symbol} mint={t.mint} logoUri={t.icon} size={40} />
             <div className="min-w-0">
               <div className="font-display text-xl leading-tight flex items-center gap-1.5 truncate">
                 {t.name}
@@ -215,7 +216,7 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
                 First pool opened {shortDate(t.age.firstPoolAt)}
                 {t.age.launchpad ? `, launched on ${t.age.launchpad}` : ""}
                 {t.age.graduatedAt ? `, graduated ${shortDate(t.age.graduatedAt)}` : ""}. This is when trading
-                began, not when the mint was created.
+                began, not when the mint was created
               </Detail>
             </>
           ) : (
@@ -235,7 +236,7 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
             <Meter label="Top holders" pct={t.holders.topHoldersPct} warn={t.holders.topHoldersPct > 50} delay={0.55} />
           )}
           {t.holders?.change24hPct !== undefined && (
-            <Detail>Holder count {signedPct(t.holders.change24hPct)} over the last 24 hours.</Detail>
+            <Detail>Holder count {signedPct(t.holders.change24hPct)} over the last 24 hours</Detail>
           )}
         </Line>
 
@@ -264,7 +265,7 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
                 {t.liquidity.largestPool.usd !== undefined ? ` with ${usdCompact(t.liquidity.largestPool.usd)}` : ""}.{" "}
               </>
             ) : null}
-            Whether it can leave was not checked — no public source here reports lock status.
+            Whether it can leave was not checked — no public source here reports lock status
           </Detail>
         </Line>
 
@@ -282,7 +283,6 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
                   {t.authorities.devBalancePct !== undefined
                     ? ` and holds ${t.authorities.devBalancePct.toFixed(2)}% of this one`
                     : ""}
-                  .
                 </Detail>
               )}
             </>
@@ -303,7 +303,7 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
             <Detail>
               Organic score {Math.round(t.activity.organicScore)}
               {t.activity.organicLabel ? ` (${t.activity.organicLabel})` : ""} — Jupiter&apos;s measure of real
-              trading against wash trading.
+              trading against wash trading
             </Detail>
           )}
           {t.activity && t.activity.links.length > 0 && (
@@ -333,7 +333,14 @@ function TokenFile({ token: t, play: ready, audible }: { token: FeaturedToken; p
 
       <footer className="px-5 py-3 border-t hairline text-[11px] font-mono text-[var(--ink-mute)] flex flex-wrap items-center justify-between gap-2">
         <span>read {utcTime(t.asOf)} · facts, not a recommendation</span>
-        <span className="flex gap-3">
+        <span className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => requestOpenCa(t.mint)}
+            className="font-[family-name:var(--font-body)] font-bold text-[12px] text-[var(--lamp-green)] hover:text-[var(--foreground)] transition-colors"
+          >
+            Ask the analyst →
+          </button>
           <a href={solscan} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--foreground)]">
             Solscan ↗
           </a>
@@ -384,7 +391,7 @@ function Detail({ children }: { children: React.ReactNode }) {
 }
 
 function NotInSource() {
-  return <Detail>Not in the source right now.</Detail>;
+  return <Detail>Not in the source right now</Detail>;
 }
 
 function Figure({ label, children }: { label: string; children: React.ReactNode }) {

@@ -4,13 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import type { CaseFile } from "@/lib/types";
+import type { TokenFile } from "@/lib/token-file";
 import { readAgentStream } from "@/lib/agent-client";
+import { isMintLike } from "@/lib/token-icon-src";
 import { play } from "@/lib/sound";
 import { dur, ease, spring } from "@/lib/motion";
 import { MascotImage, moodLabel, type MascotMood } from "./MascotImage";
 import { Stamp } from "./motion/Stamp";
 import { Scramble } from "./motion/Scramble";
 import { Magnetic } from "./motion/Magnetic";
+import { TokenSlip } from "./TokenSlip";
+import { OPEN_CA_EVENT } from "@/lib/open-ca";
 
 interface Entry {
   id: string;
@@ -35,6 +39,24 @@ function settle(threads: Record<string, Entry[]>): Record<string, Entry[]> {
   return changed ? next : threads;
 }
 
+/** What he is working on: a filed position from the wallet, or a token
+ *  someone pasted the contract address of. */
+type Subject =
+  | { kind: "case"; key: string; symbol: string; tag: string; caseFile: CaseFile }
+  | { kind: "token"; key: string; symbol: string; tag: string; mint: string };
+
+function shortAddr(a: string) {
+  return `${a.slice(0, 4)}…${a.slice(-4)}`;
+}
+
+function caseSubject(c: CaseFile): Subject {
+  return { kind: "case", key: c.caseNo, symbol: c.symbol, tag: c.caseNo, caseFile: c };
+}
+
+function tokenSubject(mint: string, file?: TokenFile): Subject {
+  return { kind: "token", key: `ca:${mint}`, symbol: file?.symbol ?? shortAddr(mint), tag: `CA ${shortAddr(mint)}`, mint };
+}
+
 interface LiveEntry {
   /** The id the finished entry will carry. Sharing it keeps the card mounted
    *  from first token to final text, so nothing re-enters when it completes. */
@@ -45,8 +67,8 @@ interface LiveEntry {
   chunks: string[];
 }
 
-const NO_WALLET_LINE = "Connect a wallet on the left to begin.";
-const NO_CASE_LINE = "Pick a filed position on the left.";
+const NO_WALLET_LINE = "Paste a CA, or connect a wallet";
+const NO_CASE_LINE = "Pick a position, or paste a CA";
 
 // The colour the room takes on around him for each mood. Hex rather than the
 // CSS variables because the glow's colour is interpolated by motion, which
@@ -60,14 +82,37 @@ const MOOD_COLOR: Record<MascotMood, string> = {
   filed: "#b8433a",
 };
 
-function readyLine(c: CaseFile) {
-  return `Ready on ${c.symbol} · ${c.caseNo}`;
+function readyLine(s: Subject) {
+  return `Ready on ${s.symbol} · ${s.tag}`;
 }
 
-export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) {
+export function AgentPanel({
+  selectedCase,
+  caseNonce = 0,
+}: {
+  selectedCase: CaseFile | null;
+  /** Bumps on every pick on the left, even of the position already open. */
+  caseNonce?: number;
+}) {
   const { publicKey } = useWallet();
   const connected = Boolean(publicKey);
-  const caseNo = selectedCase?.caseNo ?? null;
+
+  // A pasted token and a selected position can both be open; whichever was
+  // opened last has his attention.
+  const [token, setToken] = useState<{ mint: string; file?: TokenFile; failed?: boolean } | null>(null);
+  const [focus, setFocus] = useState<"case" | "token">("case");
+  const focusRef = useRef(focus);
+  useEffect(() => {
+    focusRef.current = focus;
+  }, [focus]);
+
+  const subject: Subject | null =
+    focus === "token" && token
+      ? tokenSubject(token.mint, token.file)
+      : selectedCase
+        ? caseSubject(selectedCase)
+        : null;
+  const caseNo = subject?.key ?? null;
 
   const [mood, setMood] = useState<MascotMood>("idle");
   const [statusLine, setStatusLine] = useState(NO_WALLET_LINE);
@@ -91,7 +136,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
   }, []);
 
   const run = useCallback(
-    async (target: CaseFile, kind: "analysis" | "answer", question?: string) => {
+    async (target: Subject, kind: "analysis" | "answer", question?: string) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -101,8 +146,10 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
       setError(null);
       setMood("thinking");
       setStatusLine(kind === "analysis" ? `Opening ${target.symbol}…` : "Reading the file…");
-      const entryId = `${target.caseNo}-${Date.now()}-${kind}`;
-      setLive({ id: entryId, caseNo: target.caseNo, kind, chunks: [] });
+      const entryId = `${target.key}-${Date.now()}-${kind}`;
+      setLive({ id: entryId, caseNo: target.key, kind, chunks: [] });
+      // The symbol is not known for a pasted address until the file arrives.
+      const label = { current: target };
 
       // Held on one object: the stream callback writes to it, and TypeScript
       // cannot follow assignments made inside a closure when they are read
@@ -115,36 +162,53 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
       let started = false;
 
       try {
-        const res = await fetch(kind === "analysis" ? "/api/analyze" : "/api/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({
-            caseNo: target.caseNo,
-            caseFile: target,
-            ...(question ? { question } : {}),
-          }),
-        });
+        const res =
+          target.kind === "token"
+            ? await fetch("/api/token", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                body: JSON.stringify({ mint: target.mint, ...(question ? { question } : {}) }),
+              })
+            : await fetch(kind === "analysis" ? "/api/analyze" : "/api/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                body: JSON.stringify({
+                  caseNo: target.caseFile.caseNo,
+                  caseFile: target.caseFile,
+                  ...(question ? { question } : {}),
+                }),
+              });
 
         await readAgentStream(res, (event) => {
           if (controller.signal.aborted) return;
           switch (event.t) {
+            case "file": {
+              const file = event.v;
+              if (target.kind === "token") {
+                label.current = tokenSubject(target.mint, file);
+                setToken((prev) => (prev && prev.mint === target.mint ? { mint: prev.mint, file } : prev));
+                if (kind === "analysis") setStatusLine(`Opening ${file.symbol}…`);
+              }
+              break;
+            }
             case "delta":
               if (!started) {
                 started = true;
                 setMood("answering");
-                setStatusLine(kind === "analysis" ? "Reading it out." : "Answering from the file.");
+                setStatusLine(kind === "analysis" ? "Reading it out" : "Answering from the file");
               }
               outcome.chunks = [...outcome.chunks, event.v];
               play("tick");
-              setLive({ id: entryId, caseNo: target.caseNo, kind: outcome.kind, chunks: outcome.chunks });
+              setLive({ id: entryId, caseNo: target.key, kind: outcome.kind, chunks: outcome.chunks });
               break;
             case "refusal":
               outcome.kind = "refusal";
               outcome.chunks = [event.v];
               setMood("refusing");
-              setStatusLine("Different job, different rules.");
-              setLive({ id: entryId, caseNo: target.caseNo, kind: "refusal", chunks: outcome.chunks });
+              setStatusLine("Different job, different rules");
+              setLive({ id: entryId, caseNo: target.key, kind: "refusal", chunks: outcome.chunks });
               break;
             case "error":
               outcome.failed = event.v;
@@ -154,18 +218,23 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
           }
         });
       } catch (err) {
-        if ((err as Error)?.name === "AbortError") return;
-        outcome.failed = "The line to the analyst dropped. Try again.";
+        if ((err as Error)?.name !== "AbortError") outcome.failed = "The line to the analyst dropped. Try again";
       }
 
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        // Cut off before he wrote anything: coming back should open it afresh.
+        if (kind === "analysis" && outcome.chunks.length === 0) analyzedRef.current.delete(target.key);
+        return;
+      }
 
-      const text = outcome.chunks.join("").trim();
+      // House style: no full stop at the very end. The server already holds
+      // it back; this covers anything that slipped through.
+      const text = outcome.chunks.join("").trim().replace(/(?<!\.)\.$/, "");
       if (text) {
         setThreads((prev) => ({
           ...prev,
-          [target.caseNo]: [
-            ...(prev[target.caseNo] || []),
+          [target.key]: [
+            ...(prev[target.key] || []),
             {
               id: entryId,
               role: "agent",
@@ -179,19 +248,27 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
       setLive(null);
       setBusy(false);
 
+      const done = label.current;
       if (outcome.failed) {
         setError(outcome.failed);
         setMood("error");
         play("error");
-        settleToIdle(readyLine(target));
+        if (target.kind === "token" && kind === "analysis" && !text) {
+          // Nothing was opened: let the same address be tried again.
+          analyzedRef.current.delete(target.key);
+          setToken((prev) => (prev && prev.mint === target.mint && !prev.file ? { ...prev, failed: true } : prev));
+          settleToIdle("Paste another CA, or try again");
+        } else {
+          settleToIdle(readyLine(done));
+        }
       } else if (outcome.kind === "refusal") {
-        settleToIdle(readyLine(target));
+        settleToIdle(readyLine(done));
       } else if (kind === "analysis") {
         setMood("filed");
-        setStatusLine(`Filed · ${target.caseNo}`);
-        settleToIdle(readyLine(target), "idle", 1600);
+        setStatusLine(`Filed · ${done.tag}`);
+        settleToIdle(readyLine(done), "idle", 1600);
       } else {
-        settleToIdle(readyLine(target));
+        settleToIdle(readyLine(done));
       }
     },
     [settleToIdle]
@@ -200,12 +277,17 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
   // Selecting a position sets him working: he opens that file and reads it out
   // without being asked. Re-selecting one already read spends no second call.
   useEffect(() => {
+    // A pasted token has his attention; a wallet connecting or the case list
+    // emptying does not take it away. Picking a position does.
+    if (!selectedCase && focusRef.current === "token") return;
+    if (selectedCase) void Promise.resolve().then(() => setFocus("case"));
+
     // Whatever opens next, everything already written is no longer new.
     void Promise.resolve().then(() => setThreads(settle));
 
     if (!selectedCase || analyzedRef.current.has(selectedCase.caseNo)) {
       abortRef.current?.abort();
-      const line = selectedCase ? readyLine(selectedCase) : connected ? NO_CASE_LINE : NO_WALLET_LINE;
+      const line = selectedCase ? readyLine(caseSubject(selectedCase)) : connected ? NO_CASE_LINE : NO_WALLET_LINE;
       // Deferred a microtask: a setState straight from an effect body cascades
       // an extra render.
       void Promise.resolve().then(() => {
@@ -219,8 +301,54 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
     }
 
     analyzedRef.current.add(selectedCase.caseNo);
-    void run(selectedCase, "analysis");
+    void run(caseSubject(selectedCase), "analysis");
   }, [selectedCase, connected, run]);
+
+  // Picking the position that is already selected still brings his
+  // attention back to it from a pasted token.
+  useEffect(() => {
+    if (!caseNonce || !selectedCase || focusRef.current !== "token") return;
+    void Promise.resolve().then(() => {
+      setFocus("case");
+      setThreads(settle);
+      if (analyzedRef.current.has(selectedCase.caseNo) && !abortRef.current?.signal.aborted) {
+        setStatusLine(readyLine(caseSubject(selectedCase)));
+      }
+    });
+  }, [caseNonce, selectedCase]);
+
+  /** Opens a file on a pasted contract address, or returns to it if open. */
+  const openCa = useCallback(
+    (mint: string) => {
+      const target = tokenSubject(mint);
+      void Promise.resolve().then(() => setThreads(settle));
+      setFocus("token");
+      setToken((prev) => (prev && prev.mint === mint ? prev : { mint }));
+      play("flip");
+      if (analyzedRef.current.has(target.key)) {
+        abortRef.current?.abort();
+        setLive(null);
+        setBusy(false);
+        setError(null);
+        setMood("idle");
+        setStatusLine(readyLine(target));
+        return;
+      }
+      analyzedRef.current.add(target.key);
+      void run(target, "analysis");
+    },
+    [run]
+  );
+
+  // The desk on the left can hand him a token too.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const mint = (e as CustomEvent<{ mint?: string }>).detail?.mint;
+      if (mint && isMintLike(mint)) openCa(mint);
+    };
+    window.addEventListener(OPEN_CA_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_CA_EVENT, onOpen);
+  }, [openCa]);
 
   useEffect(() => {
     return () => {
@@ -240,14 +368,14 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
   function ask(e: React.FormEvent) {
     e.preventDefault();
     const question = draft.trim();
-    if (!question || busy || !selectedCase) return;
+    if (!question || busy || !subject) return;
 
     setThreads((prev) => ({
       ...prev,
-      [selectedCase.caseNo]: [
-        ...(prev[selectedCase.caseNo] || []),
+      [subject.key]: [
+        ...(prev[subject.key] || []),
         {
-          id: `${selectedCase.caseNo}-${Date.now()}-q`,
+          id: `${subject.key}-${Date.now()}-q`,
           role: "visitor",
           kind: "question",
           text: question,
@@ -256,7 +384,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
       ],
     }));
     setDraft("");
-    void run(selectedCase, "answer", question);
+    void run(subject, "answer", question);
   }
 
   const entries = caseNo ? threads[caseNo] || [] : [];
@@ -280,7 +408,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: dur.short, ease: ease.settle }}
             >
-              {caseNo ? <Scramble text={`${selectedCase?.symbol} · ${caseNo}`} duration={520} /> : "no file open"}
+              {subject ? <Scramble text={`${subject.symbol} · ${subject.tag}`} duration={520} /> : "no file open"}
             </motion.span>
           </AnimatePresence>
         </div>
@@ -379,10 +507,13 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
         </div>
       </div>
 
+      {/* ——— open a file on any token by its contract address ——— */}
+      <CaForm onOpen={openCa} activeMint={focus === "token" ? token?.mint : undefined} />
+
       {/* ——— the transcript ——— */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         <AnimatePresence mode="wait" initial={false}>
-          {!selectedCase ? (
+          {!subject ? (
             <EmptyTranscript key="empty" connected={connected} />
           ) : (
             <motion.div
@@ -396,18 +527,21 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
               {/* One keyed list, live card last: when the stream finishes, the
                   stored entry takes the live card's key and slot, so React
                   keeps the same element and nothing re-enters. */}
+              {subject.kind === "token" && (
+                <TokenSlip key={`slip-${subject.mint}`} mint={subject.mint} file={token?.file} failed={token?.failed} />
+              )}
               {[
                 ...entries.map((entry) =>
                   entry.role === "visitor" ? (
                     <QuestionSlip key={entry.id} text={entry.text} animate={entry.fresh} />
                   ) : (
-                    <AgentCard key={entry.id} kind={entry.kind} caseNo={caseNo!} animate={entry.fresh}>
+                    <AgentCard key={entry.id} kind={entry.kind} tag={subject.tag} animate={entry.fresh}>
                       {entry.text}
                     </AgentCard>
                   )
                 ),
                 liveHere ? (
-                  <AgentCard key={liveHere.id} kind={liveHere.kind} caseNo={caseNo!} animate writing>
+                  <AgentCard key={liveHere.id} kind={liveHere.kind} tag={subject.tag} animate writing>
                     {liveHere.chunks.map((c, i) => (
                       <span key={i} className="ink-chunk">
                         {c}
@@ -450,8 +584,8 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={selectedCase ? "How concentrated is this one?" : "Select a position first"}
-          disabled={!selectedCase || busy}
+          placeholder={subject ? "How concentrated is this one?" : "Open a file first"}
+          disabled={!subject || busy}
           className="field flex-1 border hairline rounded-full px-4 py-2.5 text-sm outline-none disabled:opacity-50"
           maxLength={400}
         />
@@ -459,7 +593,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
           <button
             type="submit"
             className="btn btn-primary btn-shine shrink-0 min-w-[5.5rem]"
-            disabled={!selectedCase || busy || !draft.trim()}
+            disabled={!subject || busy || !draft.trim()}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
@@ -495,13 +629,13 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
 
 function AgentCard({
   kind,
-  caseNo,
+  tag,
   animate,
   writing = false,
   children,
 }: {
   kind: Entry["kind"];
-  caseNo: string;
+  tag: string;
   animate: boolean;
   writing?: boolean;
   children: React.ReactNode;
@@ -524,7 +658,7 @@ function AgentCard({
       {analysis && (
         <div className="flex items-center justify-between gap-3 text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--ink-mute)] mb-2">
           <span>Opening read</span>
-          <span>{caseNo}</span>
+          <span>{tag}</span>
         </div>
       )}
       <p
@@ -588,9 +722,94 @@ function EmptyTranscript({ connected }: { connected: boolean }) {
       </motion.svg>
       <p className="text-sm text-[var(--ink-mute)] max-w-xs leading-relaxed">
         {connected
-          ? "Select a position on the left and he opens its file, unprompted. After that you can ask him about it."
-          : "Connect a wallet and he opens a file on every position in it."}
+          ? "Select a position on the left, or paste any token's CA above, and he opens its file unprompted. After that you can ask him about it"
+          : "Paste any token's CA above and he opens a file on it, no wallet needed. Connect one and he opens a file on every position in it"}
       </p>
     </motion.div>
+  );
+}
+
+/**
+ * Paste any token's contract address and he opens a file on it — no wallet
+ * needed. A valid address pasted in opens at once; typing one in takes Enter
+ * or the button.
+ */
+function CaForm({ onOpen, activeMint }: { onOpen: (mint: string) => void; activeMint?: string }) {
+  const [value, setValue] = useState("");
+  const [hint, setHint] = useState<string | null>(null);
+
+  function submit(raw: string) {
+    const mint = raw.trim();
+    if (!mint) return;
+    if (!isMintLike(mint)) {
+      setHint("That doesn't look like a Solana contract address");
+      play("error");
+      return;
+    }
+    setHint(null);
+    onOpen(mint);
+  }
+
+  return (
+    <div className="px-5 py-3 border-b hairline shrink-0 bg-[color-mix(in_srgb,var(--paper-card)_55%,transparent)]">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit(value);
+        }}
+        className="flex items-center gap-2"
+      >
+        <label
+          htmlFor="ca-input"
+          className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--ink-mute)] shrink-0 pl-1"
+        >
+          CA
+        </label>
+        <input
+          id="ca-input"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (hint) setHint(null);
+          }}
+          onPaste={(e) => {
+            const pasted = e.clipboardData.getData("text").trim();
+            if (isMintLike(pasted)) {
+              e.preventDefault();
+              setValue(pasted);
+              submit(pasted);
+            }
+          }}
+          placeholder="Paste any token's contract address"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          maxLength={64}
+          aria-describedby={hint ? "ca-hint" : undefined}
+          aria-invalid={hint ? true : undefined}
+          className={`field flex-1 min-w-0 border hairline rounded-full px-4 py-2 text-[13px] font-mono outline-none ${activeMint && value.trim() === activeMint ? "border-[var(--lamp-green)]" : ""}`}
+        />
+        <button type="submit" className="btn btn-ghost shrink-0 !px-4 !py-2 text-[13px]" disabled={!value.trim()}>
+          Open file
+        </button>
+      </form>
+      <AnimatePresence>
+        {hint && (
+          <motion.p
+            id="ca-hint"
+            key="hint"
+            role="alert"
+            className="text-xs text-[var(--tag-red)] mt-2 pl-1"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: dur.short }}
+          >
+            {hint}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

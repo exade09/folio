@@ -30,13 +30,13 @@ export function TweetCard() {
       </div>
 
       <p className="mt-4 text-[15px] leading-relaxed">
-        Folio is an AI analyst for your Solana wallet. Connect it and he opens a file on every position:
-        contract age, holder concentration, where the liquidity sits, who collects the creator fee, what
-        the socials have been doing.
+        Folio is an AI analyst for Solana tokens. Connect a wallet, or paste any CA, and he opens a file:
+        age, holder concentration, liquidity next to market cap, who can still mint or freeze it — read
+        live, every line sourced
       </p>
       <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-soft)]">
         &ldquo;Can I just ask him things?&rdquo; Yes — plain words, sourced from the file. &ldquo;So what
-        should I buy?&rdquo; He doesn&apos;t answer that one.
+        should I buy?&rdquo; He doesn&apos;t answer that one
       </p>
 
       <div className="mt-4 pt-3 border-t hairline flex items-center justify-between text-xs text-[var(--ink-mute)] font-mono">

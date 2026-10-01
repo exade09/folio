@@ -1,10 +1,12 @@
 # Folio
 
-An analyst for a Solana wallet. Connect a wallet and Folio opens a file on every
-position in it: contract age, holder concentration, where the liquidity sits and
-whether it can leave, who collects the creator fee, what the socials have been
-doing. Every line carries the source you can open. Files are numbered when filed
-and never edited afterward, including the ones that age badly.
+An analyst for Solana tokens. Connect a wallet and Folio opens a file on every
+position in it — or paste any token's contract address in the analyst's pane and
+it opens a file on that, no wallet needed. A file holds the token's age, holder
+concentration, liquidity next to market cap, who can still mint or freeze it,
+and its market and activity, all read live, every line naming its source. The
+analyst (built on GPT-6 ASTRA; see /docs) reads it out and answers questions
+from it. Files are numbered when filed and never edited afterward.
 
 Originally described for a Robinhood Chain launch; rebuilt here for Solana.
 
@@ -44,29 +46,32 @@ All three are server-only. None of them may go in a `NEXT_PUBLIC_*` variable.
 This is the one thing the product cannot afford to fudge, so it's spelled out
 plainly rather than left to be discovered:
 
-- **Real, live:** the wallet connection, the list of tokens it holds (classic
-  SPL and Token-2022, with several accounts for one mint summed), and their
-  balances — read straight off Solana mainnet-beta through Helius. Token
-  name/symbol/logo come from Jupiter's public token list (`lite-api.jup.ag`)
-  when a mint is listed there; unlisted mints fall back to a shortened address,
-  never a made-up name.
-- **Simulated, clearly marked "Demo":** the five analytical facts inside each
-  file — contract age, holder concentration, liquidity location and lock
-  status, creator fee collector, social activity. Reading them needs indexer
-  calls (Helius, plus a DEX source for liquidity) that are not wired in yet —
-  the Helius connection is only used to read balances so far. Every fact
-  carries a `confidence: "demo" | "live"` tag end to end — in the JSON, in the
-  UI stamp next to it, and in what the AI analyst is told to disclose when
-  asked about it. Nothing simulated is ever presented as live.
-- The overnight change shown on the briefing page is simulated the same way,
-  seeded per token per UTC day so it's stable within a day rather than
-  re-rolling on every request.
+Everything in a file is read live, at the moment the file is opened
+(`lib/token-file.ts`):
 
-Wiring in real data later is additive: replace `buildDemoFacts` in
-`lib/demo-enrichment.ts` with real Helius/Birdeye calls that return the same
-`PositionFacts` shape, set `confidence: "live"`, and everything downstream —
-the file view, the ask endpoint's grounding, the briefing feed — needs no
-other change.
+- **Solana RPC (Helius):** the wallet's token accounts (classic SPL and
+  Token-2022, several accounts for one mint summed), the mint account — supply,
+  mint and freeze authority, Token-2022 extensions said in terms of what they
+  let someone do (transfer fee, permanent delegate, transfer hook, pausable…) —
+  the ten largest token accounts, and names for mints Jupiter does not list
+  (DAS `getAssetBatch`).
+- **Jupiter (Tokens API v2):** price, market cap, 24-hour change, liquidity,
+  holder count and top-holder share, first pool and launchpad, audit flags,
+  organic score, the project's links.
+- **DexScreener:** the largest pool, by venue.
+
+What no public source here answers — whether liquidity is locked, who the
+largest holders actually are, the creator fee, what the team has been posting —
+is listed in the file as `notChecked`, shown under it, and the analyst closes
+on it. Nothing is simulated any more. Files from before this (version 1, with
+simulated facts) stay in the append-only store but are no longer served
+(`normalizeCase` in `lib/types.ts`).
+
+A wallet scan prices every held token on Jupiter first and files the twelve
+largest by dollar value. Reads are batched: one RPC call for every mint
+account, one for names, one Jupiter and one DexScreener request per batch, and
+the largest-accounts read (which has no batch form) three at a time, to stay
+inside the Helius plan's request rate.
 
 ## How a file is filed
 
@@ -112,15 +117,24 @@ Russian, since the site is read in both.
 
 The same file builds a second prompt, `streamAnalysisOfCase`, for the opening
 read the agent gives the moment a position is selected: same grounding, same
-house rules, but asked to walk the five facts in the order that matters for that
-particular position and to close on what the file does not establish.
+house rules, but asked to lead with what is most striking about that token —
+live authorities or Token-2022 extensions first — and to close on what the file
+does not establish.
+
+The model comes from `OPENAI_MODEL`. The site's docs name GPT-6 ASTRA
+(`AGENT_MODEL` in `lib/site.ts`), so set `OPENAI_MODEL` to that model's API id.
+Reasoning-family models (o-series, GPT-5, GPT-6) get `max_completion_tokens`
+with room to think and no custom temperature; older chat models get
+`temperature`. If the API still turns a parameter down, the request is retried
+once with only what every chat model accepts.
 
 ## Routes
 
 ```
 /                     the whole product: case index on the left, the analyst on the right
-/case/[caseNo]         one file on its own page: five facts, sources, prior filings, ask box
-/briefing              "this morning" — filed positions ranked by overnight move
+/case/[caseNo]         one file on its own page: the facts, sources, prior filings, ask box
+/briefing              filed positions ranked by their 24-hour move when filed
+/docs                  how the desk works, for visitors
 ```
 
 `/` is a two-pane shell. The left half is the wallet: the pitch before a wallet
@@ -133,10 +147,12 @@ spend a second call — the transcript is already there.
 ## API
 
 ```
-POST /api/scan      { wallet } → reads live token accounts, files new cases
-POST /api/analyze    { caseNo, caseFile? } → streams the opening read on that file
-POST /api/ask        { caseNo, question, caseFile? } → streams a grounded answer
-GET  /api/briefing   ?wallet= optional → movers, sorted by |overnight change|
+POST /api/scan            { wallet } → reads live token accounts, files new cases
+POST /api/analyze          { caseNo, caseFile? } → streams the opening read on that file
+POST /api/ask              { caseNo, question, caseFile? } → streams a grounded answer
+POST /api/token            { mint, question? } → a file on any token, then the read or answer
+GET  /api/token-icon/:mint  the token's logo, fetched server-side and edge-cached
+GET  /api/briefing         ?wallet= optional → movers, sorted by |24h change|
 ```
 
 `/api/analyze` and `/api/ask` answer with newline-delimited JSON rather than a
@@ -144,6 +160,7 @@ single object, one event per line, so the agent's text can be written out as the
 model produces it:
 
 ```
+{"t":"file","v":{…TokenFile}}                       /api/token only: the file, first
 {"t":"delta","v":"The contract is 395 days old"}   a piece of the answer
 {"t":"refusal","v":"He does not answer that one…"} an advice question, refused
 {"t":"error","v":"…"}                              the analyst is unreachable
@@ -158,21 +175,19 @@ carried into the next read.
 The optional `caseFile` on both endpoints is the case object `/api/scan` already
 returned to the client. It is used only when the on-disk store has no such case —
 which is what happens on a serverless deployment, where the store cannot keep
-anything (see below). It is validated against the full `CaseFile` shape in
-`lib/case-input.ts` before it is allowed near a prompt.
+anything (see below). Only its position part (wallet, mint, balance) is taken,
+after validation in `lib/case-input.ts`; the token facts are re-read from the
+chain and the market, so nothing edited in the request reaches the analyst as
+a fact.
 
-## Manual QA without burning RPC quota
+Replies end without a full stop — house style. The model is asked for it and
+`withoutFinalPeriod` in `lib/ai.ts` makes sure of it.
 
-The public mainnet RPC used for local dev rate-limits quickly. To review the
-file/ask/briefing UI without depending on it, `scripts/seed-demo-cases.ts`
-files a handful of real, well-known mints (USDC, BONK, JUP, $WIF) against a
-throwaway wallet address, using the same `fetchTokenMeta` → `buildDemoFacts`
-→ `fileCase` pipeline the live scan uses — only the "read this wallet's
-balances from RPC" step is skipped. Run it with:
-
-```bash
-npx tsx scripts/seed-demo-cases.ts
-```
+Token logos never load from the metadata host directly: IPFS gateways
+rate-limit and launchpad CDNs refuse hotlinks. `/api/token-icon/:mint` tries
+Helius's CDN copy, Jupiter's and DexScreener's icons and several IPFS gateways,
+returns the first real image, and lets Vercel's edge cache it for a month.
+PUMP's official logo is kept in `public/tokens/` (`lib/token-icon-src.ts`).
 
 ## Brand and header
 
@@ -196,7 +211,7 @@ Jupiter's token API (one request for all of them) and DexScreener (one request,
 for the largest pool's venue), on the server, and the home page regenerates at
 most every five minutes.
 
-Unlike a wallet's case file, nothing on these is simulated. Every line names
+As in a wallet's case file, nothing on these is simulated. Every line names
 the source and field it came from, and where no public source answers the
 question the file says so: liquidity lock status is shown as not checked, and
 the age line is the first pool's opening, which Jupiter is explicit is not the

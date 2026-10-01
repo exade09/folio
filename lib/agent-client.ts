@@ -1,13 +1,16 @@
+import type { TokenFile } from "./token-file";
+
 export type AgentEvent =
   | { t: "delta"; v: string }
   | { t: "refusal"; v: string }
+  | { t: "file"; v: TokenFile }
   | { t: "done" }
   | { t: "error"; v: string };
 
 function isAgentEvent(value: unknown): value is AgentEvent {
   if (!value || typeof value !== "object") return false;
   const t = (value as { t?: unknown }).t;
-  return t === "delta" || t === "refusal" || t === "done" || t === "error";
+  return t === "delta" || t === "refusal" || t === "file" || t === "done" || t === "error";
 }
 
 /**
@@ -21,7 +24,7 @@ export async function readAgentStream(
   onEvent: (event: AgentEvent) => void
 ): Promise<void> {
   if (!res.ok || !res.body) {
-    let message = "The analyst is unreachable right now.";
+    let message = "The analyst is unreachable right now";
     try {
       const data = await res.json();
       if (typeof data?.v === "string") message = data.v;

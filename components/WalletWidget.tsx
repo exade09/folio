@@ -6,6 +6,7 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import type { CaseFile } from "@/lib/types";
 import { dur, ease, spring, stagger } from "@/lib/motion";
 import { TokenAvatar } from "./TokenAvatar";
+import { usdCompact } from "@/lib/format-money";
 import { FactList, ConfidenceStamp } from "./FactList";
 import { CountUp } from "./motion/CountUp";
 import { Scramble } from "./motion/Scramble";
@@ -104,7 +105,7 @@ export function WalletWidget({
           <Phase key="empty">
             <div className="px-5 py-12 text-center">
               <EmptyDrawer />
-              <p className="text-sm text-[var(--ink-mute)] mt-4">No SPL token positions found in this wallet.</p>
+              <p className="text-sm text-[var(--ink-mute)] mt-4">No SPL token positions found in this wallet</p>
             </div>
           </Phase>
         )}
@@ -164,7 +165,8 @@ function CaseRow({
   selected: boolean;
   onToggle: () => void;
 }) {
-  const up = c.overnightChangePct >= 0;
+  const ch = c.change24hPct;
+  const up = (ch ?? 0) >= 0;
   // Cards are dealt, not faded: each comes down from a slightly different
   // angle and settles flat, so a list of twelve reads as a hand of files.
   const tilt = index % 2 === 0 ? -1.6 : 1.4;
@@ -208,21 +210,31 @@ function CaseRow({
           animate={{ scale: 1, opacity: 1 }}
           transition={{ ...spring.stamp, delay: 0.12 + index * stagger.base }}
         >
-          <TokenAvatar symbol={c.symbol} logoUri={c.logoUri} size={34} />
+          <TokenAvatar symbol={c.symbol} mint={c.mint} logoUri={c.logoUri} size={34} />
         </motion.span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-bold truncate">{c.symbol}</span>
-            <ConfidenceStamp confidence={c.metadataSource} delay={0.3 + index * stagger.base} />
+            <ConfidenceStamp live={Boolean(c.token)} delay={0.3 + index * stagger.base} />
           </div>
           <div className="text-xs text-[var(--ink-mute)] truncate flex items-center gap-1.5">
             <span className="font-mono">{c.caseNo}</span>
             <span>·</span>
             <span>{formatBalance(c.balanceUi)} held</span>
+            {c.valueUsd !== undefined && (
+              <>
+                <span>·</span>
+                <span className="font-mono">{usdCompact(c.valueUsd)}</span>
+              </>
+            )}
           </div>
         </div>
+        {ch === undefined ? (
+          <div className="font-mono text-sm shrink-0 text-[var(--ink-mute)]" title="No 24-hour price change reported">—</div>
+        ) : (
         <div
           className={`font-mono text-sm shrink-0 flex items-center gap-1 ${up ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}`}
+          title="24-hour price change, Jupiter"
         >
           <motion.span
             aria-hidden="true"
@@ -232,8 +244,9 @@ function CaseRow({
           >
             {up ? "▲" : "▼"}
           </motion.span>
-          <CountUp value={c.overnightChangePct} decimals={1} suffix="%" signed delay={0.2 + index * stagger.base} />
+          <CountUp value={ch} decimals={1} suffix="%" signed delay={0.2 + index * stagger.base} />
         </div>
+        )}
         <motion.svg
           width="12"
           height="12"
@@ -276,8 +289,8 @@ function CaseRow({
 
 const LOADER_LINES = [
   "Reading token accounts off the chain…",
-  "Looking names up on Jupiter…",
-  "Opening a file on each position…",
+  "Pricing them on Jupiter…",
+  "Reading each mint off the chain…",
   "Numbering the files…",
 ];
 

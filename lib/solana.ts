@@ -24,7 +24,14 @@ export function serverRpcUrl(): string {
 
 let connection: Connection | null = null;
 function getConnection(): Connection {
-  if (!connection) connection = new Connection(serverRpcUrl(), "confirmed");
+  // Node's own fetch rather than the node-fetch copy web3.js bundles: one
+  // HTTP stack for every outbound call the server makes.
+  if (!connection) {
+    connection = new Connection(serverRpcUrl(), {
+      commitment: "confirmed",
+      fetch: (input, init) => globalThis.fetch(input, init),
+    });
+  }
   return connection;
 }
 

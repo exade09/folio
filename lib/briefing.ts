@@ -14,7 +14,8 @@ export async function getMovers(wallet?: string): Promise<CaseFile[]> {
     cases = Array.from(byMint.values());
   }
 
-  return [...cases].sort(
-    (a, b) => Math.abs(b.overnightChangePct) - Math.abs(a.overnightChangePct)
+  // Only files where Jupiter reported a 24-hour change can be ranked by it.
+  return cases.filter((c) => c.change24hPct !== undefined).sort(
+    (a, b) => Math.abs(b.change24hPct ?? 0) - Math.abs(a.change24hPct ?? 0)
   );
 }

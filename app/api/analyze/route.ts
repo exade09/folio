@@ -14,17 +14,17 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return agentError("Malformed request body.", 400);
+    return agentError("Malformed request body", 400);
   }
 
   const caseNo = (body.caseNo || "").trim();
   if (!caseNo) {
-    return agentError("Missing case number.", 400);
+    return agentError("Missing case number", 400);
   }
 
   const caseFile = await resolveCase(caseNo, body.caseFile);
   if (!caseFile) {
-    return agentError("No such file.", 404);
+    return agentError("No such file", 404);
   }
 
   return ndjsonResponse(streamAnalysisOfCase(caseFile));

@@ -871,3 +871,22 @@ html[data-intro="skip"] .intro-cover {
   border: 1.5px solid var(--hairline-strong);
   box-shadow: 0 10px 18px -10px rgba(34, 48, 71, 0.55);
 }
+
+/* -- loading lines on a token file still being read -- */
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ink-mute) 14%, transparent) 0%,
+    color-mix(in srgb, var(--ink-mute) 30%, transparent) 50%,
+    color-mix(in srgb, var(--ink-mute) 14%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.3s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line { animation: none; }
+}

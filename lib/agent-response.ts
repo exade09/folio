@@ -20,7 +20,7 @@ export function ndjsonResponse(events: AsyncGenerator<AgentEvent>): Response {
         }
       } catch {
         controller.enqueue(
-          encoder.encode(`${JSON.stringify({ t: "error", v: "The analyst stopped mid-file." })}\n`)
+          encoder.encode(`${JSON.stringify({ t: "error", v: "The analyst stopped mid-file" })}\n`)
         );
         controller.close();
       }

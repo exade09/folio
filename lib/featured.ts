@@ -27,7 +27,7 @@ const DEXSCREENER_TOKENS = "https://api.dexscreener.com/tokens/v1/solana";
 // token should cost that line, not the whole file.
 const num = z.number().finite();
 const stats = z.object({ priceChange: num.optional(), holderChange: num.optional(), numTraders: num.optional() }).partial();
-const jupToken = z.object({
+export const jupToken = z.object({
   id: z.string(),
   name: z.string(),
   symbol: z.string(),
@@ -62,7 +62,7 @@ const jupToken = z.object({
   updatedAt: z.string().optional(),
 });
 
-const dexPair = z.object({
+export const dexPair = z.object({
   dexId: z.string(),
   pairAddress: z.string(),
   url: z.string().optional(),
@@ -116,7 +116,7 @@ const DAY_MS = 86_400_000;
  * attributes. Only plain http(s) gets through: a javascript: or data: URL
  * from a token's metadata never reaches the page.
  */
-function safeUrl(u: string | undefined): string | undefined {
+export function safeUrl(u: string | undefined): string | undefined {
   if (!u) return undefined;
   try {
     const parsed = new URL(u);
@@ -144,7 +144,7 @@ const VENUE: Record<string, string> = {
   "meteora-dlmm": "Meteora DLMM",
 };
 
-function venueName(dexId: string, labels?: string[]) {
+export function venueName(dexId: string, labels?: string[]) {
   const base = VENUE[dexId] ?? dexId.charAt(0).toUpperCase() + dexId.slice(1);
   return labels?.length ? `${base} ${labels.join(" ")}` : base;
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CaseFile } from "@/lib/types";
 import { StampBadge } from "./StampBadge";
 import { TokenAvatar } from "./TokenAvatar";
+import { usdCompact } from "@/lib/format-money";
 
 function formatBalance(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -10,7 +11,8 @@ function formatBalance(n: number) {
 }
 
 export function CaseCard({ caseFile }: { caseFile: CaseFile }) {
-  const up = caseFile.overnightChangePct >= 0;
+  const ch = caseFile.change24hPct;
+  const up = (ch ?? 0) >= 0;
   return (
     <Link
       href={`/case/${caseFile.caseNo}`}
@@ -18,11 +20,11 @@ export function CaseCard({ caseFile }: { caseFile: CaseFile }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex items-start gap-3">
-          <TokenAvatar symbol={caseFile.symbol} logoUri={caseFile.logoUri} />
+          <TokenAvatar symbol={caseFile.symbol} mint={caseFile.mint} logoUri={caseFile.logoUri} />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-display text-lg truncate">{caseFile.symbol}</span>
-              <StampBadge confidence={caseFile.metadataSource} />
+              <StampBadge live={Boolean(caseFile.token)} />
             </div>
             <div className="text-sm text-[var(--ink-mute)] truncate mt-0.5">{caseFile.name}</div>
           </div>
@@ -30,8 +32,7 @@ export function CaseCard({ caseFile }: { caseFile: CaseFile }) {
         <div
           className={`font-mono text-sm shrink-0 ${up ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}`}
         >
-          {up ? "+" : ""}
-          {caseFile.overnightChangePct}%
+          {ch === undefined ? "—" : `${up ? "+" : ""}${ch.toFixed(1)}%`}
         </div>
       </div>
 
@@ -40,7 +41,12 @@ export function CaseCard({ caseFile }: { caseFile: CaseFile }) {
           <div className="text-xs text-[var(--ink-mute)] uppercase tracking-wide font-mono">
             Balance
           </div>
-          <div className="font-mono text-sm mt-0.5">{formatBalance(caseFile.balanceUi)}</div>
+          <div className="font-mono text-sm mt-0.5">
+            {formatBalance(caseFile.balanceUi)}
+            {caseFile.valueUsd !== undefined && (
+              <span className="text-[var(--ink-mute)]"> · {usdCompact(caseFile.valueUsd)}</span>
+            )}
+          </div>
         </div>
         <div className="text-right">
           <div className="font-mono text-xs text-[var(--ink-mute)]">{caseFile.caseNo}</div>

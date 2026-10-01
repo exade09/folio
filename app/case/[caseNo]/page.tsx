@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCase, getCaseHistory } from "@/lib/cases-store";
 import { AskBox } from "@/components/AskBox";
 import { TokenAvatar } from "@/components/TokenAvatar";
+import { usdCompact } from "@/lib/format-money";
 import { MascotImage } from "@/components/MascotImage";
 import { FactList } from "@/components/FactList";
 import { CountUp } from "@/components/motion/CountUp";
@@ -22,7 +23,8 @@ export default async function CasePage({ params }: { params: Promise<{ caseNo: s
 
   const history = await getCaseHistory(caseFile.wallet, caseFile.mint);
   const priorFilings = history.filter((h) => h.caseNo !== caseFile.caseNo);
-  const up = caseFile.overnightChangePct >= 0;
+  const ch = caseFile.change24hPct;
+  const up = (ch ?? 0) >= 0;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
@@ -39,7 +41,7 @@ export default async function CasePage({ params }: { params: Promise<{ caseNo: s
           <div className="rounded-2xl overflow-hidden shrink-0 bg-[#5a8df0]">
             <MascotImage mood="idle" size={64} still />
           </div>
-          <TokenAvatar symbol={caseFile.symbol} logoUri={caseFile.logoUri} size={48} />
+          <TokenAvatar symbol={caseFile.symbol} mint={caseFile.mint} logoUri={caseFile.logoUri} size={48} />
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <SplitReveal as="h1" text={caseFile.symbol} className="font-display text-3xl md:text-4xl" />
@@ -65,14 +67,21 @@ export default async function CasePage({ params }: { params: Promise<{ caseNo: s
           <div className="text-xs font-mono uppercase tracking-wide text-[var(--ink-mute)]">Balance held</div>
           <div className="font-mono text-lg mt-0.5">
             <CountUp value={caseFile.balanceUi} decimals={caseFile.balanceUi < 100 ? 4 : 2} />
+            {caseFile.valueUsd !== undefined && (
+              <span className="text-sm text-[var(--ink-mute)]"> · {usdCompact(caseFile.valueUsd)}</span>
+            )}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs font-mono uppercase tracking-wide text-[var(--ink-mute)]">Overnight</div>
-          <div className={`font-mono text-lg mt-0.5 ${up ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}`}>
-            {up ? "▲ " : "▼ "}
-            <CountUp value={caseFile.overnightChangePct} decimals={1} suffix="%" signed />
-          </div>
+          <div className="text-xs font-mono uppercase tracking-wide text-[var(--ink-mute)]">24h when filed</div>
+          {ch === undefined ? (
+            <div className="font-mono text-lg mt-0.5 text-[var(--ink-mute)]">—</div>
+          ) : (
+            <div className={`font-mono text-lg mt-0.5 ${up ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}`}>
+              {up ? "▲ " : "▼ "}
+              <CountUp value={ch} decimals={1} suffix="%" signed />
+            </div>
+          )}
         </div>
       </Reveal>
 
@@ -96,9 +105,16 @@ export default async function CasePage({ params }: { params: Promise<{ caseNo: s
                 <span className="text-[var(--ink-mute)]">
                   {new Date(h.filedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
                 </span>
-                <span className={h.overnightChangePct >= 0 ? "text-[var(--lamp-green)]" : "text-[var(--tag-red)]"}>
-                  {h.overnightChangePct >= 0 ? "+" : ""}
-                  {h.overnightChangePct}%
+                <span
+                  className={
+                    h.change24hPct === undefined
+                      ? "text-[var(--ink-mute)]"
+                      : h.change24hPct >= 0
+                        ? "text-[var(--lamp-green)]"
+                        : "text-[var(--tag-red)]"
+                  }
+                >
+                  {h.change24hPct === undefined ? "—" : `${h.change24hPct >= 0 ? "+" : ""}${h.change24hPct.toFixed(1)}%`}
                 </span>
               </Link>
             ))}

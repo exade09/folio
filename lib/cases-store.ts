@@ -2,6 +2,7 @@ import { neon } from "@neondatabase/serverless";
 import { fileStore } from "./store/file-store";
 import { createPgStore } from "./store/pg-store";
 import type { CaseStore } from "./store/types";
+import { normalizeCase, type CaseFile } from "./types";
 
 // Which store backs the app is decided by the environment alone:
 //
@@ -34,10 +35,17 @@ function getStore(): CaseStore {
   return store;
 }
 
+// Records are passed through normalizeCase on the way out: files from before
+// Folio read live sources (simulated facts, no version) are left in the
+// append-only store — nothing is ever deleted — but no longer served.
+const current = (list: unknown[]): CaseFile[] =>
+  list.map(normalizeCase).filter((c): c is CaseFile => c !== null);
+
 export const fileCase: CaseStore["fileCase"] = (draft) => getStore().fileCase(draft);
-export const getCase: CaseStore["getCase"] = (caseNo) => getStore().getCase(caseNo);
-export const listLatestCasesForWallet: CaseStore["listLatestCasesForWallet"] = (wallet) =>
-  getStore().listLatestCasesForWallet(wallet);
-export const getCaseHistory: CaseStore["getCaseHistory"] = (wallet, mint) =>
-  getStore().getCaseHistory(wallet, mint);
-export const listRecentCases: CaseStore["listRecentCases"] = (limit) => getStore().listRecentCases(limit);
+export const getCase: CaseStore["getCase"] = async (caseNo) => normalizeCase(await getStore().getCase(caseNo));
+export const listLatestCasesForWallet: CaseStore["listLatestCasesForWallet"] = async (wallet) =>
+  current(await getStore().listLatestCasesForWallet(wallet));
+export const getCaseHistory: CaseStore["getCaseHistory"] = async (wallet, mint) =>
+  current(await getStore().getCaseHistory(wallet, mint));
+export const listRecentCases: CaseStore["listRecentCases"] = async (limit) =>
+  current(await getStore().listRecentCases(limit));

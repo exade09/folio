@@ -62,7 +62,7 @@ export function AskBox({ caseFile }: { caseFile: CaseFile }) {
         else if (event.t === "error") outcome.failed = event.v;
       });
     } catch {
-      outcome.failed = "Couldn't reach the analyst.";
+      outcome.failed = "Couldn't reach the analyst";
     }
 
     patch(id, (ex) => ({ ...ex, done: true }));
@@ -158,7 +158,7 @@ export function AskBox({ caseFile }: { caseFile: CaseFile }) {
       </AnimatePresence>
       <p className="text-xs text-[var(--ink-mute)] mt-4">
         He answers out of this file only, and names the line he took it from. He doesn&apos;t say what to
-        buy — different job, different rules.
+        buy — different job, different rules
       </p>
     </div>
   );

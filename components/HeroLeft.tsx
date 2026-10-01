@@ -27,7 +27,7 @@ export function HeroLeft({ desk }: { desk: Desk | null }) {
 
       <SplitReveal
         as="h1"
-        text="Connect a wallet. He opens a file on every position in it."
+        text="Connect a wallet. He opens a file on every position in it"
         play={ready}
         delay={0.2}
         className="font-display text-4xl md:text-[3.4rem] leading-[1.04] tracking-[-0.02em]"
@@ -39,9 +39,9 @@ export function HeroLeft({ desk }: { desk: Desk | null }) {
         animate={ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined}
         transition={{ delay: 0.75, duration: dur.long, ease: ease.settle }}
       >
-        Contract age. Holder concentration. Where the liquidity sits and whether it can leave. Who
-        collects the creator fee. What the socials have been doing. Every line carries the source
-        you can open.
+        Age. Holder concentration. Liquidity next to market cap. Who can still mint or freeze it.
+        Price and activity. Read live off the chain, Jupiter and DexScreener, and every line carries
+        the source you can open
       </motion.p>
 
       <motion.div
@@ -83,7 +83,7 @@ export function HeroLeft({ desk }: { desk: Desk | null }) {
 
       <Reveal className="mt-10">
         <p className="text-sm text-[var(--ink-mute)]">
-          Folio is not affiliated with any exchange, wallet, or token it reports on.
+          Folio is not affiliated with any exchange, wallet, or token it reports on
         </p>
       </Reveal>
     </div>
@@ -95,18 +95,17 @@ function RealVsDemo() {
     <TiltCard max={4}>
       <div className="panel p-7">
         <div className="flex items-center gap-2.5 mb-4 flex-wrap">
-          <InViewStamp tone="brass">Demo</InViewStamp>
-          <InViewStamp tone="green" delay={0.18}>
+          <InViewStamp tone="green">
             Live
           </InViewStamp>
-          <h2 className="font-display text-xl ml-1">What&apos;s real today</h2>
+          <h2 className="font-display text-xl ml-1">Live, end to end</h2>
         </div>
         <p className="text-sm text-[var(--ink-soft)] leading-relaxed">
-          The token list and the balances are read live off the connected wallet, and token names come
-          from Jupiter&apos;s public token list where they&apos;re listed there. The five facts inside each
-          file — contract age, holder concentration, liquidity, creator fee, socials — are simulated for
-          now: Folio doesn&apos;t have a paid Helius or Birdeye connection wired in yet. Every fact says
-          which it is, in the file and in the source line under it.
+          Everything in a file is read live the moment it is opened: balances and the mint account off
+          the chain, market, holders and age from Jupiter, pools from DexScreener. Paste any token&apos;s
+          CA in the analyst&apos;s pane to open a file without a wallet. What no public source answers —
+          whether liquidity is locked, the creator fee, what the team has been posting — is written down
+          as not checked, never filled in
         </p>
       </div>
     </TiltCard>

@@ -31,7 +31,7 @@ const displayFont = Fraunces({
 export const metadata: Metadata = {
   title: "Folio — an analyst for your Solana wallet",
   description:
-    "Connect a wallet and Folio opens a file on every position in it: contract age, holder concentration, where the liquidity sits, who collects the creator fee, what the socials have been doing. Every line carries the source you can open.",
+    "Connect a wallet or paste any token's contract address and Folio opens a file on it: age, holder concentration, liquidity next to market cap, who can still mint or freeze it, price and activity. Read live, every line sourced",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
