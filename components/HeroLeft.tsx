@@ -5,6 +5,8 @@ import { motion } from "motion/react";
 import { ConnectButton } from "./ConnectButton";
 import { TweetCard } from "./TweetCard";
 import { SpecimenFile } from "./SpecimenFile";
+import { FeaturedDesk } from "./FeaturedDesk";
+import type { FeaturedDesk as Desk } from "@/lib/featured";
 import { useIntroReady } from "./motion/Intro";
 import { SplitReveal } from "./motion/SplitReveal";
 import { Reveal } from "./motion/Reveal";
@@ -12,7 +14,7 @@ import { Stamp } from "./motion/Stamp";
 import { TiltCard } from "./motion/TiltCard";
 import { dur, ease } from "@/lib/motion";
 
-export function HeroLeft() {
+export function HeroLeft({ desk }: { desk: Desk | null }) {
   const ready = useIntroReady();
 
   return (
@@ -64,7 +66,9 @@ export function HeroLeft() {
         animate={ready ? { opacity: 1, y: 0, rotate: 0 } : undefined}
         transition={{ delay: 1.15, duration: dur.cinematic, ease: ease.glide }}
       >
-        <SpecimenFile play={ready} />
+        {/* Live files when the market sources answered; the invented specimen
+            only when they didn't, so the pitch never shows an empty desk. */}
+        {desk ? <FeaturedDesk desk={desk} play={ready} /> : <SpecimenFile play={ready} />}
       </motion.div>
 
       <Reveal className="mt-14">

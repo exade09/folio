@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { ConnectButton } from "./ConnectButton";
+import { SoundToggle } from "./SoundToggle";
 import { useIntroReady } from "./motion/Intro";
 import { dur, ease } from "@/lib/motion";
 
@@ -53,7 +54,10 @@ export function SiteHeader() {
           </Link>
         </nav>
 
-        <ConnectButton size="sm" />
+        <div className="flex items-center gap-2.5">
+          <SoundToggle />
+          <ConnectButton size="sm" />
+        </div>
       </div>
     </motion.header>
   );

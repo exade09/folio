@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { AnimatePresence, motion } from "motion/react";
 import { dur, ease, spring } from "@/lib/motion";
 import { INTRO_SEEN_KEY } from "@/lib/intro-script";
+import { play } from "@/lib/sound";
 
 // The first time someone lands in a session, the page arrives as a closed
 // manila case file: the wordmark is lettered on, a case number runs up, a
@@ -29,6 +30,12 @@ type Phase = "letter" | "stamp" | "lift" | "done";
 
 export function IntroProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<Phase>("letter");
+  // Read by skip(), which must decide on the current phase without calling a
+  // side effect from inside a state updater.
+  const phaseRef = useRef<Phase>("letter");
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const finish = useCallback(() => {
@@ -44,8 +51,12 @@ export function IntroProvider({ children }: { children: React.ReactNode }) {
 
   const skip = useCallback(() => {
     // A skip still lifts the cover rather than cutting it — cutting reads as
-    // a glitch, a quick lift reads as the page doing what was asked.
-    setPhase((p) => (p === "done" || p === "lift" ? p : "lift"));
+    // a glitch, a quick lift reads as the page doing what was asked. The
+    // click that asks for it is also what unlocks audio, so this page turn is
+    // usually the first sound a visitor hears.
+    if (phaseRef.current === "done" || phaseRef.current === "lift") return;
+    play("flip", { delayMs: 20 });
+    setPhase("lift");
     timers.current.forEach(clearTimeout);
     timers.current = [setTimeout(finish, 520)];
   }, [finish]);
@@ -56,7 +67,10 @@ export function IntroProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     timers.current = [
-      setTimeout(() => setPhase("stamp"), 1050),
+      setTimeout(() => {
+        setPhase("stamp");
+        play("stamp", { delayMs: 90 });
+      }, 1050),
       setTimeout(() => setPhase("lift"), 1650),
       setTimeout(finish, 2450),
     ];

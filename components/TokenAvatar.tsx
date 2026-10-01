@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function hueFrom(seed: string) {
   let h = 0;
@@ -18,11 +18,23 @@ export function TokenAvatar({
   size?: number;
 }) {
   const [failed, setFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // An <img> in server-rendered HTML can fail before React hydrates and
+  // attaches onError, and that event is then never seen — the visitor is left
+  // with a broken-image glyph. After mount, check whether it already gave up.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) {
+      void Promise.resolve().then(() => setFailed(true));
+    }
+  }, [logoUri]);
 
   if (logoUri && !failed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
+        ref={imgRef}
         src={logoUri}
         alt=""
         width={size}
@@ -30,6 +42,7 @@ export function TokenAvatar({
         onError={() => setFailed(true)}
         className="rounded-full object-cover shrink-0"
         style={{ width: size, height: size }}
+        referrerPolicy="no-referrer"
       />
     );
   }

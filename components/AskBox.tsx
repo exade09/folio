@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { CaseFile } from "@/lib/types";
 import { readAgentStream } from "@/lib/agent-client";
+import { play } from "@/lib/sound";
 import { dur, ease } from "@/lib/motion";
 import { Stamp } from "./motion/Stamp";
 import { Magnetic } from "./motion/Magnetic";
@@ -53,7 +54,10 @@ export function AskBox({ caseFile }: { caseFile: CaseFile }) {
         body: JSON.stringify({ caseNo: caseFile.caseNo, question: q, caseFile }),
       });
       await readAgentStream(res, (event) => {
-        if (event.t === "delta") patch(id, (ex) => ({ ...ex, chunks: [...ex.chunks, event.v] }));
+        if (event.t === "delta") {
+          play("tick");
+          patch(id, (ex) => ({ ...ex, chunks: [...ex.chunks, event.v] }));
+        }
         else if (event.t === "refusal") patch(id, (ex) => ({ ...ex, chunks: [event.v], refused: true }));
         else if (event.t === "error") outcome.failed = event.v;
       });
@@ -64,6 +68,7 @@ export function AskBox({ caseFile }: { caseFile: CaseFile }) {
     patch(id, (ex) => ({ ...ex, done: true }));
     if (outcome.failed) {
       setError(outcome.failed);
+      play("error");
       setExchanges((prev) => prev.filter((ex) => ex.id !== id || ex.chunks.length > 0));
     }
     setBusy(false);
@@ -114,7 +119,7 @@ export function AskBox({ caseFile }: { caseFile: CaseFile }) {
                 </p>
                 {ex.refused && (
                   <div className="absolute right-0 bottom-0">
-                    <Stamp tone="red" size="sm" rotate={-6} delay={0.1}>
+                    <Stamp tone="red" size="sm" rotate={-6} delay={0.1} sound="stamp">
                       Declined
                     </Stamp>
                   </div>

@@ -174,6 +174,42 @@ balances from RPC" step is skipped. Run it with:
 npx tsx scripts/seed-demo-cases.ts
 ```
 
+## The front desk
+
+Before a wallet is connected, the pitch shows live files on a few tokens
+people are watching — the list is `FEATURED` in `lib/featured.ts` (pump.fun's
+PUMP, e/acc, PAID, Super Inu at the time of writing). They are read from
+Jupiter's token API (one request for all of them) and DexScreener (one request,
+for the largest pool's venue), on the server, and the home page regenerates at
+most every five minutes.
+
+Unlike a wallet's case file, nothing on these is simulated. Every line names
+the source and field it came from, and where no public source answers the
+question the file says so: liquidity lock status is shown as not checked, and
+the age line is the first pool's opening, which Jupiter is explicit is not the
+mint's creation time. Jupiter's "top holders" share is labelled the way Jupiter
+labels it, without assuming how many holders it counts. Links from these
+sources only render if they are plain http(s).
+
+If Jupiter cannot be reached, the pitch falls back to the invented specimen
+file instead of an empty desk. The files page through on their own while on
+screen; picking one is the only thing that makes them sound.
+
+## Sound
+
+`lib/sound.ts` synthesises every sound with the Web Audio API — no audio files.
+A rubber stamp for the red stamps (FILED, DECLINED, the intro's ON FILE), a
+page turn when a file opens, a hand of cards dealt when the index arrives,
+uneven pencil ticks while the analyst writes, a desk bell when a wallet
+connects, two low knocks when something fails. All of it is quiet and sits in a
+short generated room reverb behind a compressor.
+
+Nothing sounds before the visitor's first click or key press (browsers forbid
+it, and sounds asked for earlier are dropped, not queued). Sound follows what
+the visitor does: loops that run on their own, like the paging desk and the
+specimen, stay silent. The speaker in the header turns it all off, and the
+choice is remembered per browser.
+
 ## Motion
 
 Everything that moves is tuned from `lib/motion.ts` — curves, durations, springs,

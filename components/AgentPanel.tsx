@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import type { CaseFile } from "@/lib/types";
 import { readAgentStream } from "@/lib/agent-client";
+import { play } from "@/lib/sound";
 import { dur, ease, spring } from "@/lib/motion";
 import { MascotImage, moodLabel, type MascotMood } from "./MascotImage";
 import { Stamp } from "./motion/Stamp";
@@ -135,6 +136,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
                 setStatusLine(kind === "analysis" ? "Reading it out." : "Answering from the file.");
               }
               outcome.chunks = [...outcome.chunks, event.v];
+              play("tick");
               setLive({ id: entryId, caseNo: target.caseNo, kind: outcome.kind, chunks: outcome.chunks });
               break;
             case "refusal":
@@ -180,6 +182,7 @@ export function AgentPanel({ selectedCase }: { selectedCase: CaseFile | null }) 
       if (outcome.failed) {
         setError(outcome.failed);
         setMood("error");
+        play("error");
         settleToIdle(readyLine(target));
       } else if (outcome.kind === "refusal") {
         settleToIdle(readyLine(target));
@@ -535,7 +538,7 @@ function AgentCard({
       )}
       {refusal && (
         <div className="absolute right-0 top-1/2 -translate-y-1/2">
-          <Stamp tone="red" size="sm" rotate={-6} instant={!animate} delay={0.1}>
+          <Stamp tone="red" size="sm" rotate={-6} instant={!animate} delay={0.1} sound="stamp">
             Declined
           </Stamp>
         </div>

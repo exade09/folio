@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import type { CaseFile } from "@/lib/types";
+import type { FeaturedDesk } from "@/lib/featured";
+import { play } from "@/lib/sound";
 import { dur, ease } from "@/lib/motion";
 import { WalletWidget } from "./WalletWidget";
 import { AgentPanel } from "./AgentPanel";
@@ -14,9 +16,10 @@ function shortAddr(addr: string) {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-export function AppShell() {
+export function AppShell({ desk }: { desk: FeaturedDesk | null }) {
   const { publicKey } = useWallet();
   const wallet = publicKey?.toBase58() ?? null;
+  const prevWallet = useRef<string | null>(null);
   const ready = useIntroReady();
   const leftRef = useRef<HTMLDivElement | null>(null);
 
@@ -38,15 +41,24 @@ export function AppShell() {
       if (!res.ok) {
         setError(data.error || "Could not open files for that wallet.");
         setCases(null);
+        play("error");
       } else {
         setCases(data.cases);
       }
     } catch {
       setError("The scan didn't reach the server. Try again.");
+      play("error");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // The desk bell rings when a wallet connects. A silent reconnect on page
+  // load rings too, but audio is still locked then, so it is never heard.
+  useEffect(() => {
+    if (wallet && !prevWallet.current) play("bell");
+    prevWallet.current = wallet;
+  }, [wallet]);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -104,7 +116,7 @@ export function AppShell() {
               exit={{ opacity: 0, x: -40, filter: "blur(8px)" }}
               transition={{ duration: dur.long, ease: ease.glide }}
             >
-              <HeroLeft />
+              <HeroLeft desk={desk} />
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { spring } from "@/lib/motion";
+import { play as playSound, type SoundName } from "@/lib/sound";
 
 type Tone = "red" | "green" | "brass";
 
@@ -26,6 +27,7 @@ export function Stamp({
   play = true,
   size = "md",
   instant = false,
+  sound,
   className = "",
 }: {
   children: React.ReactNode;
@@ -36,10 +38,25 @@ export function Stamp({
   size?: "sm" | "md" | "lg";
   /** Already landed — render it in place with no motion (e.g. revisiting a file). */
   instant?: boolean;
+  /**
+   * What it sounds like when it lands. Defaults to a stamp for red stamps
+   * (a heavy one for md/lg, a lighter press for sm) and silence for the rest;
+   * pass false to keep a red stamp quiet, e.g. on an automatic loop.
+   */
+  sound?: Extract<SoundName, "stamp" | "stampSoft"> | false;
   className?: string;
 }) {
   const reduce = useReducedMotion();
   const color = TONE[tone];
+  const landing = sound === undefined ? (tone === "red" ? (size === "sm" ? "stampSoft" : "stamp") : false) : sound;
+
+  // The thud lands with the stamp, not when it starts falling: the spring
+  // reaches the paper roughly 90 ms after it is released.
+  useEffect(() => {
+    if (!play || instant || !landing) return;
+    const id = setTimeout(() => playSound(landing), delay * 1000 + 90);
+    return () => clearTimeout(id);
+  }, [play, instant, landing, delay]);
 
   // Irregular but deterministic: the same spray on the server and the client,
   // so a stamp in server-rendered HTML hydrates without a mismatch.

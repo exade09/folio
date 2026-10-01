@@ -112,7 +112,7 @@ export function SpecimenFile({ play }: { play: boolean }) {
               </div>
             </div>
             <div className="text-right shrink-0">
-              <Stamp tone="red" size="sm" rotate={-4} play={play} delay={0.1}>
+              <Stamp tone="red" size="sm" rotate={-4} play={play} delay={0.1} sound={false}>
                 Specimen
               </Stamp>
               <div className="font-mono text-xs text-[var(--ink-mute)] mt-1.5">
@@ -174,7 +174,7 @@ export function SpecimenFile({ play }: { play: boolean }) {
           </motion.ol>
 
           <div className="absolute right-6 bottom-16 pointer-events-none">
-            <Stamp tone="red" size="lg" rotate={-11} delay={1.9} play={play}>
+            <Stamp tone="red" size="lg" rotate={-11} delay={1.9} play={play} sound={false}>
               Filed
             </Stamp>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { play } from "@/lib/sound";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import type { CaseFile } from "@/lib/types";
 import { dur, ease, spring, stagger } from "@/lib/motion";
@@ -34,6 +35,10 @@ export function WalletWidget({
   onRescan: () => void;
 }) {
   const state = loading ? "loading" : error ? "error" : !cases ? "idle" : cases.length === 0 ? "empty" : "list";
+
+  useEffect(() => {
+    if (state === "list") play("deal");
+  }, [state]);
 
   return (
     <div className="panel folder-tab overflow-hidden">
@@ -119,7 +124,11 @@ export function WalletWidget({
                     caseFile={c}
                     index={i}
                     selected={c.caseNo === selectedCaseNo}
-                    onToggle={() => onSelect(c.caseNo === selectedCaseNo ? null : c.caseNo)}
+                    onToggle={() => {
+                      const opening = c.caseNo !== selectedCaseNo;
+                      play(opening ? "flip" : "tap");
+                      onSelect(opening ? c.caseNo : null);
+                    }}
                   />
                 ))}
               </motion.ul>
