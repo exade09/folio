@@ -80,7 +80,8 @@ function positionFile(c: CaseFile) {
 // the house's token and the reader should know that while reading — then
 // reads it like any other: strengths the file shows first, risks that are in
 // the file still named, nothing promised.
-const OWN_GREETING = "Oh, checking our own token here? Good. ";
+const OWN_GREETING =
+  "Oh, checking our own token here? Good. It just launched, and we're proud of it — the desk you're on is the reason it exists. LFG. ";
 
 function isOwnToken(mint: string): boolean {
   return mint === CONTRACT_ADDRESS;
@@ -92,7 +93,8 @@ function ownTokenNote(mint: string, opening: boolean): string {
 This is Folio's own token, the one this site is built around.
 - ${opening ? `Your reply is already prefixed with "${OWN_GREETING.trim()}" — do not greet again. ` : ""}Write in English, whatever language the question is in.
 - Say once that it is Folio's own token, so the reader can weigh that.
-- Lead with the genuine strengths the file shows, in a warm, upbeat tone. Do not invent strengths, do not soften or leave out a risk line that is in the file, and make no price prediction or promise.`;
+- Be warm and upbeat, with a few kind words about it, in the easy tone of web3 — it is freshly launched and the team is proud of it. Lead with the genuine strengths the file shows.
+- Do not invent strengths, do not soften or leave out a risk line that is in the file, and never say or hint where the price is going ("moon", "pump", "100x", "early") — that is a promise, and he makes none.`;
 }
 
 function askPrompt(caseFile: CaseFile): string {
