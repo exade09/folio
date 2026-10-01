@@ -3,9 +3,8 @@
 import { useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Magnetic } from "./motion/Magnetic";
-import { markConnectIntent } from "@/lib/wallet-intent";
+import { useWalletPicker } from "./WalletPicker";
 import { dur, ease } from "@/lib/motion";
 
 function shortAddr(addr: string) {
@@ -14,13 +13,12 @@ function shortAddr(addr: string) {
 
 export function ConnectButton({ size = "md" }: { size?: "sm" | "md" }) {
   const { publicKey, disconnect, connecting } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { open } = useWalletPicker();
 
   const handleClick = useCallback(() => {
     if (publicKey) return;
-    markConnectIntent();
-    setVisible(true);
-  }, [publicKey, setVisible]);
+    open();
+  }, [publicKey, open]);
 
   // In the header on a phone, the wallet buttons shrink to icons: next to the
   // logo, the CA and two round buttons, there is no room for words below

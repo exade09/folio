@@ -208,40 +208,6 @@ body {
   border-top: 1px solid var(--border);
 }
 
-/* -- wallet-adapter modal, restyled to match -- */
-
-.wallet-adapter-button {
-  background: var(--lamp-green) !important;
-  color: var(--paper-card) !important;
-  border-radius: 999px !important;
-  font-family: var(--font-body), sans-serif !important;
-  font-weight: 700 !important;
-  height: auto !important;
-  padding: 0.75em 1.4em !important;
-}
-
-.wallet-adapter-modal-wrapper {
-  background: var(--paper-card) !important;
-  color: var(--foreground) !important;
-  border-radius: 20px !important;
-  border: 1.5px solid var(--hairline-strong);
-}
-
-.wallet-adapter-modal-title {
-  color: var(--foreground) !important;
-  font-family: var(--font-display), serif !important;
-}
-
-.wallet-adapter-modal-list li .wallet-adapter-button {
-  background: transparent !important;
-  color: var(--foreground) !important;
-  border: 1.5px solid var(--hairline) !important;
-}
-
-.wallet-adapter-modal-overlay {
-  background: rgba(34, 48, 71, 0.5) !important;
-}
-
 @keyframes stamp-in {
   from {
     opacity: 0;

@@ -256,8 +256,17 @@ rather than bounce; the only deliberate overshoot is a stamp landing.
 
 ## Wallet connection
 
-The provider connects only when the visitor has just asked to: clicking
-"Connect wallet" marks that intent (`lib/wallet-intent.ts`) and the provider's
+The picker is Folio's own (`components/WalletPicker.tsx`, list in
+`lib/wallets.ts`), not the adapter library's modal. Phantom, Solflare and
+Backpack are always listed first; MetaMask, which now registers for Solana
+too, is left out. An installed wallet connects through Wallet Standard under
+its own name. Solflare also connects without the extension, through its web
+wallet (`@solana/wallet-adapter-solflare`). A wallet that is not installed
+opens its download page on a computer, and on a phone opens Folio inside the
+wallet app's browser, where it is then detected.
+
+The provider connects only when the visitor has just picked a wallet: picking
+one marks that intent (`lib/wallet-intent.ts`) and the provider's
 `autoConnect` callback turns it into a full `connect()`. A page load with a
 remembered wallet only tries a silent reconnect. With a plain
 `autoConnect={false}`, picking a wallet in the modal selected it and stopped
